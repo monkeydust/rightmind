@@ -16,6 +16,8 @@ interface AgentStep {
 
 interface Progress {
   currentPhase?: string;
+  currentRound?: number;
+  totalRounds?: number;
   steps?: AgentStep[];
 }
 
@@ -58,6 +60,16 @@ const PHASE_LABELS: Record<string, string> = {
   decompose: "Decomposing challenge",
   execute: "Executing sub-tasks",
   review: "Reviewing & synthesising",
+  analyse: "Agents analysing",
+  synthesise: "Judge synthesising",
+  draft: "Drafting proposal",
+  critique: "Devil's advocate critiquing",
+  refine: "Refining position",
+  judge: "Judge evaluating",
+  aggregate: "Judge aggregating rounds",
+  launching: "Launching strategies",
+  running: "Strategies running",
+  "meta-synthesis": "Meta-judge synthesising",
   done: "Complete",
   failed: "Failed",
   cancelled: "Cancelled",
@@ -241,6 +253,211 @@ function ChildStrategyReports({ childJobIds }: { childJobIds: string[] }) {
   );
 }
 
+// ─── Copy / Export Action Bar ─────────────────────────────────────────────
+
+interface TranscriptEntry {
+  agentRole: string;
+  agentModel: string;
+  phase: string | null;
+  round: number;
+  response: string;
+  reasoning: string | null;
+}
+
+const STRATEGY_DESCRIPTIONS: Record<string, string> = {
+  "consensus-board": "4 specialist agents (Risk Analyst, Growth Strategist, Operations Manager, Technical Feasibility Assessor) analysed the challenge independently and in parallel. A Chief Executive Synthesiser then reviewed all four analyses and produced the final briefing below.",
+  "stress-tester": "A Proposer drafted an initial position, then a Devil's Advocate attacked it across multiple rounds. A Verdict Judge reviewed the full debate and produced the final briefing below.",
+  "round-table": "Multiple agents debated the challenge across several rounds, explicitly agreeing and disagreeing with each other until consensus emerged. A Consensus Judge evaluated the final positions.",
+  "deep-dive": "A Manager agent decomposed the challenge into sub-tasks, specialist Worker agents tackled each one independently, then a Review Judge synthesised all findings into the final briefing below.",
+  "all-angles": "All four strategies (Consensus Board, Stress Tester, Round Table, Deep Dive) were run in parallel. A Meta-Judge then analysed where they agreed and diverged, producing a cross-strategy alignment matrix and confidence-weighted recommendation.",
+};
+
+function CopyBar({ jobId, challenge, strategyId, report, showReasoning, reasoningTraces }: {
+  jobId: string;
+  challenge: string;
+  strategyId: string;
+  report: string;
+  showReasoning: boolean;
+  reasoningTraces: ReasoningTrace[];
+}) {
+  const [copyState, setCopyState] = useState<"idle" | "copied-report" | "copied-discussion" | "copied-transcript" | "loading">("idle");
+
+  function resetCopy() {
+    setTimeout(() => setCopyState("idle"), 2500);
+  }
+
+  function buildReasoningBlock(traces: ReasoningTrace[]): string {
+    if (!traces.length) return "";
+    const lines = traces.map((t) =>
+      `### ${t.agentRole} (${t.agentModel})\nTokens: ${t.tokens}\n\n${t.reasoning}`
+    );
+    return `\n\n---\n\n## Agent Reasoning Traces\n\nThese are the internal thinking/reasoning traces from each agent before they produced their response.\n\n${lines.join("\n\n---\n\n")}`;
+  }
+
+  async function copyReport() {
+    const reasoning = showReasoning ? buildReasoningBlock(reasoningTraces) : "";
+    await navigator.clipboard.writeText(report + reasoning);
+    setCopyState("copied-report");
+    resetCopy();
+  }
+
+  async function copyForDiscussion() {
+    const strategyLabel = STRATEGY_LABELS[strategyId] || { icon: "📄", name: strategyId };
+    const strategyDesc = STRATEGY_DESCRIPTIONS[strategyId] || "";
+    const reasoning = showReasoning ? buildReasoningBlock(reasoningTraces) : "";
+
+    const text = `I've had the following challenge analysed by a multi-agent AI advisory system called RightMind. Here's the full context — I'd like to discuss the findings with you.
+
+## My Challenge
+
+${challenge}
+
+## Strategy Used: ${strategyLabel.icon} ${strategyLabel.name}
+
+${strategyDesc}
+
+## Final Analysis
+
+${report}${reasoning}
+
+---
+
+Please review this analysis. I'd like your perspective on:
+1. Whether the reasoning is sound
+2. What might have been missed or underweighted
+3. What you'd do differently
+4. Any blind spots in the analysis`;
+
+    await navigator.clipboard.writeText(text);
+    setCopyState("copied-discussion");
+    resetCopy();
+  }
+
+  async function copyFullTranscript() {
+    setCopyState("loading");
+    try {
+      const res = await fetch(`/api/advisor/jobs/${jobId}/transcript`);
+      const data = await res.json();
+      const entries: TranscriptEntry[] = data.responses || [];
+
+      const strategyLabel = STRATEGY_LABELS[strategyId] || { icon: "📄", name: strategyId };
+      const strategyDesc = STRATEGY_DESCRIPTIONS[strategyId] || "";
+
+      const agentSections = entries.map((e) => {
+        let section = `### ${e.agentRole} (${e.agentModel})`;
+        if (e.phase) section += `\nPhase: ${e.phase}`;
+        if (e.round > 1) section += ` · Round ${e.round}`;
+        if (showReasoning && e.reasoning) {
+          section += `\n\n**Reasoning trace:**\n${e.reasoning}`;
+        }
+        section += `\n\n**Response:**\n${e.response}`;
+        return section;
+      });
+
+      const text = `I've had the following challenge analysed by a multi-agent AI advisory system called RightMind. Below is the complete transcript — every individual agent's analysis, followed by the final synthesis. I'd like to discuss the findings with you.
+
+## My Challenge
+
+${challenge}
+
+## Strategy Used: ${strategyLabel.icon} ${strategyLabel.name}
+
+${strategyDesc}
+
+## Individual Agent Analyses
+
+${agentSections.join("\n\n---\n\n")}
+
+---
+
+## Final Synthesised Report
+
+${report}
+
+---
+
+Please review the full analysis above. I'd like your perspective on:
+1. Whether the individual agents' reasoning was sound
+2. Whether the synthesis accurately captured the key tensions and agreements
+3. What was missed or underweighted
+4. What you'd do differently`;
+
+      await navigator.clipboard.writeText(text);
+      setCopyState("copied-transcript");
+      resetCopy();
+    } catch {
+      setCopyState("idle");
+    }
+  }
+
+  const btnStyle: React.CSSProperties = {
+    padding: "4px 12px",
+    fontSize: "11px",
+    fontFamily: "var(--font-ui)",
+    fontWeight: 500,
+    background: "none",
+    border: "1px solid var(--rule)",
+    color: "var(--grey)",
+    cursor: "pointer",
+    transition: "all 0.15s",
+    whiteSpace: "nowrap",
+  };
+
+  const activeBtnStyle: React.CSSProperties = {
+    ...btnStyle,
+    borderColor: "var(--teal)",
+    color: "var(--teal)",
+    fontWeight: 600,
+  };
+
+  return (
+    <div style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "6px",
+      marginBottom: "16px",
+      flexWrap: "wrap",
+    }}>
+      <span style={{ fontSize: "11px", color: "var(--grey-light)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600, marginRight: "4px" }}>
+        Export
+      </span>
+      <button
+        onClick={copyReport}
+        style={copyState === "copied-report" ? activeBtnStyle : btnStyle}
+        onMouseEnter={(e) => { if (copyState !== "copied-report") { e.currentTarget.style.borderColor = "var(--charcoal)"; e.currentTarget.style.color = "var(--charcoal)"; } }}
+        onMouseLeave={(e) => { if (copyState !== "copied-report") { e.currentTarget.style.borderColor = "var(--rule)"; e.currentTarget.style.color = "var(--grey)"; } }}
+        title="Copy the final synthesised report as markdown"
+      >
+        {copyState === "copied-report" ? "✓ Copied" : "📋 Copy report"}
+      </button>
+      <button
+        onClick={copyForDiscussion}
+        style={copyState === "copied-discussion" ? activeBtnStyle : btnStyle}
+        onMouseEnter={(e) => { if (copyState !== "copied-discussion") { e.currentTarget.style.borderColor = "var(--charcoal)"; e.currentTarget.style.color = "var(--charcoal)"; } }}
+        onMouseLeave={(e) => { if (copyState !== "copied-discussion") { e.currentTarget.style.borderColor = "var(--rule)"; e.currentTarget.style.color = "var(--grey)"; } }}
+        title="Copy with your original challenge + discussion prompts — ready to paste into ChatGPT, Claude, or Gemini"
+      >
+        {copyState === "copied-discussion" ? "✓ Copied" : "💬 Copy for discussion"}
+      </button>
+      <button
+        onClick={copyFullTranscript}
+        disabled={copyState === "loading"}
+        style={copyState === "copied-transcript" ? activeBtnStyle : { ...btnStyle, opacity: copyState === "loading" ? 0.5 : 1 }}
+        onMouseEnter={(e) => { if (copyState !== "copied-transcript" && copyState !== "loading") { e.currentTarget.style.borderColor = "var(--charcoal)"; e.currentTarget.style.color = "var(--charcoal)"; } }}
+        onMouseLeave={(e) => { if (copyState !== "copied-transcript" && copyState !== "loading") { e.currentTarget.style.borderColor = "var(--rule)"; e.currentTarget.style.color = "var(--grey)"; } }}
+        title="Copy everything — each agent's individual analysis + the final synthesis. Best for deep discussion."
+      >
+        {copyState === "loading" ? "Loading..." : copyState === "copied-transcript" ? "✓ Copied" : "📑 Copy full transcript"}
+      </button>
+      {showReasoning && (
+        <span style={{ fontSize: "10px", color: "var(--teal)", fontStyle: "italic" }}>
+          + reasoning traces
+        </span>
+      )}
+    </div>
+  );
+}
+
 export default function JobDetailPage() {
   const params = useParams();
   const jobId = params.id as string;
@@ -257,6 +474,8 @@ export default function JobDetailPage() {
   const [reasoningLoaded, setReasoningLoaded] = useState(false);
   const [expandedTraces, setExpandedTraces] = useState<Set<string>>(new Set());
   const [cancelling, setCancelling] = useState(false);
+  const [emailNotify, setEmailNotify] = useState(false);
+  const [elapsedNow, setElapsedNow] = useState(Date.now());
 
   async function handleCancel() {
     if (cancelling) return;
@@ -317,6 +536,21 @@ export default function JobDetailPage() {
       es.close();
     };
   }, [jobId]);
+
+  // Fetch email notification preference
+  useEffect(() => {
+    fetch("/api/advisor/settings")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data?.emailOnComplete) setEmailNotify(true); })
+      .catch(() => {});
+  }, []);
+
+  // Tick the elapsed timer every second while job is running
+  useEffect(() => {
+    if (job.status !== "RUNNING" && job.status !== "PENDING") return;
+    const interval = setInterval(() => setElapsedNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, [job.status]);
 
   // Fetch reasoning traces when user toggles on (and job is done)
   useEffect(() => {
@@ -468,67 +702,165 @@ export default function JobDetailPage() {
       {steps.length > 0 && (
         <div className="mb-24">
           <div className="section-label">Progress</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-            {steps.map((step, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-8"
-                style={{ fontSize: "14px" }}
-              >
-                <span
+
+          {/* Phase & round indicator */}
+          {(job.status === "RUNNING" || job.status === "PENDING") && (
+            <div style={{ marginBottom: "14px" }}>
+              {/* Progress bar */}
+              {(() => {
+                const done = steps.filter((s) => s.status === "done").length;
+                const total = steps.length;
+                const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+                return (
+                  <div style={{ marginBottom: "10px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+                      <span style={{ fontSize: "12px", color: "var(--grey)", fontWeight: 500 }}>
+                        {PHASE_LABELS[phase] || phase || "Initialising"}
+                        {job.progress?.currentRound && job.progress?.totalRounds && (
+                          <span style={{ color: "var(--grey-light)", marginLeft: "6px" }}>
+                            · Round {job.progress.currentRound}/{job.progress.totalRounds}
+                          </span>
+                        )}
+                      </span>
+                      <span style={{ fontSize: "11px", color: "var(--grey-light)", fontFamily: "'Menlo','Consolas',monospace" }}>
+                        {done}/{total} agents · {pct}%
+                      </span>
+                    </div>
+                    <div style={{ height: "4px", background: "var(--rule)", borderRadius: "2px", overflow: "hidden" }}>
+                      <div style={{
+                        height: "100%",
+                        width: `${pct}%`,
+                        background: "var(--teal)",
+                        borderRadius: "2px",
+                        transition: "width 0.5s ease",
+                      }} />
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* Step list */}
+          <div style={{
+            border: "1px solid var(--rule)",
+            background: "var(--white)",
+            borderRadius: "4px",
+            overflow: "hidden",
+          }}>
+            {steps.map((step, i) => {
+              const elapsed = step.status === "running" && step.startedAt
+                ? Math.round((elapsedNow - new Date(step.startedAt).getTime()) / 1000)
+                : null;
+              const duration = step.status === "done" && step.completedAt && step.startedAt
+                ? ((new Date(step.completedAt).getTime() - new Date(step.startedAt).getTime()) / 1000).toFixed(1)
+                : null;
+
+              return (
+                <div
+                  key={i}
                   style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "10px",
+                    padding: "8px 14px",
+                    borderBottom: i < steps.length - 1 ? "1px solid var(--rule)" : "none",
+                    background: step.status === "running" ? "rgba(13,118,128,0.03)" : "transparent",
+                    transition: "background 0.3s ease",
+                  }}
+                >
+                  {/* Status icon */}
+                  <span style={{
                     color: STATUS_COLORS[step.status],
                     fontWeight: step.status === "running" ? 600 : 400,
                     width: "16px",
                     textAlign: "center",
                     fontSize: step.status === "running" ? "12px" : "14px",
-                  }}
-                >
-                  {STATUS_ICONS[step.status]}
-                </span>
-                <span
-                  style={{
-                    color:
-                      step.status === "done"
-                        ? "var(--charcoal)"
-                        : step.status === "running"
-                        ? "var(--teal)"
-                        : "var(--grey-light)",
+                    ...(step.status === "running" ? { animation: "pulse 1.5s ease-in-out infinite" } : {}),
+                  }}>
+                    {STATUS_ICONS[step.status]}
+                  </span>
+
+                  {/* Agent role */}
+                  <span style={{
+                    color: step.status === "done" ? "var(--charcoal)"
+                      : step.status === "running" ? "var(--teal)"
+                      : "var(--grey-light)",
                     fontWeight: step.status === "running" ? 600 : 400,
-                  }}
-                >
-                  {step.agentRole}
-                </span>
-                {step.status === "running" && (
-                  <span
-                    style={{
+                    fontSize: "13px",
+                    flex: 1,
+                    minWidth: 0,
+                  }}>
+                    {step.agentRole}
+                  </span>
+
+                  {/* Model badge */}
+                  <span style={{
+                    fontSize: "10px",
+                    color: "var(--grey-light)",
+                    fontFamily: "'Menlo','Consolas',monospace",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    maxWidth: "140px",
+                  }}>
+                    {step.agentModel}
+                  </span>
+
+                  {/* Running elapsed or done duration */}
+                  {step.status === "running" && elapsed !== null && (
+                    <span style={{
                       fontSize: "11px",
                       color: "var(--teal)",
-                      fontStyle: "italic",
-                    }}
-                  >
-                    analysing...
-                  </span>
-                )}
-                {step.status === "done" && step.completedAt && step.startedAt && (
-                  <span
-                    style={{
+                      fontFamily: "'Menlo','Consolas',monospace",
+                      whiteSpace: "nowrap",
+                      minWidth: "44px",
+                      textAlign: "right",
+                    }}>
+                      {elapsed}s
+                    </span>
+                  )}
+                  {step.status === "done" && duration !== null && (
+                    <span style={{
                       fontSize: "11px",
                       color: "var(--grey-light)",
                       fontFamily: "'Menlo','Consolas',monospace",
-                    }}
-                  >
-                    {(
-                      (new Date(step.completedAt).getTime() -
-                        new Date(step.startedAt).getTime()) /
-                      1000
-                    ).toFixed(1)}
-                    s
-                  </span>
-                )}
-              </div>
-            ))}
+                      whiteSpace: "nowrap",
+                      minWidth: "44px",
+                      textAlign: "right",
+                    }}>
+                      {duration}s
+                    </span>
+                  )}
+                  {step.status === "pending" && (
+                    <span style={{ minWidth: "44px" }} />
+                  )}
+                </div>
+              );
+            })}
           </div>
+
+          {/* Email notification indicator */}
+          {emailNotify && (job.status === "RUNNING" || job.status === "PENDING") && (
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              marginTop: "10px",
+              padding: "8px 12px",
+              background: "rgba(13,118,128,0.04)",
+              border: "1px solid rgba(13,118,128,0.12)",
+              borderRadius: "4px",
+              fontSize: "12px",
+              color: "var(--grey)",
+            }}>
+              <span style={{ fontSize: "14px" }}>✉️</span>
+              <span>You&apos;ll receive an email when this analysis completes.</span>
+            </div>
+          )}
+
+          {/* Pulse animation */}
+          <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
         </div>
       )}
 
@@ -606,6 +938,16 @@ export default function JobDetailPage() {
                   Show reasoning
                 </label>
               </div>
+
+              {/* Export action bar */}
+              <CopyBar
+                jobId={jobId}
+                challenge={job.challenge || ""}
+                strategyId={job.strategyId || "all-angles"}
+                report={meta.meta_recommendation || ""}
+                showReasoning={showReasoning}
+                reasoningTraces={reasoningTraces}
+              />
 
               {/* Reasoning traces */}
               {showReasoning && <ReasoningPanel traces={reasoningTraces} loaded={reasoningLoaded} expandedTraces={expandedTraces} toggleTrace={toggleTrace} />}
@@ -833,6 +1175,16 @@ export default function JobDetailPage() {
                 Show reasoning
               </label>
             </div>
+
+            {/* Export action bar */}
+            <CopyBar
+              jobId={jobId}
+              challenge={job.challenge || ""}
+              strategyId={job.strategyId || ""}
+              report={job.report}
+              showReasoning={showReasoning}
+              reasoningTraces={reasoningTraces}
+            />
 
             {/* Reasoning traces panel */}
             {showReasoning && <ReasoningPanel traces={reasoningTraces} loaded={reasoningLoaded} expandedTraces={expandedTraces} toggleTrace={toggleTrace} />}
