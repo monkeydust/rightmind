@@ -1,65 +1,69 @@
 # RightMind
 
-Multi-agent LLM advisory platform for complex decision-making. Submit a challenge, choose an intelligence strategy, and receive a comprehensive report synthesised from multiple AI models debating, critiquing, and refining each other's perspectives.
+**A single AI gives you a single perspective. RightMind gives you the argument that already happened.**
 
-## Architecture
+When you ask ChatGPT or Claude a question, you get one answer from one model. It's often good. But it's never been challenged. Nobody played devil's advocate. Nobody checked the assumptions. Nobody asked *"what did you miss?"*
 
-```
-src/
-├── app/
-│   ├── login/              # Magic link auth pages
-│   ├── advisor/            # Main dashboard, strategy pages, job viewer
-│   │   ├── jobs/           # Job history (per-user)
-│   │   ├── strategy/[id]/  # Strategy detail pages
-│   │   └── why/            # Platform explainer & research
-│   ├── api/
-│   │   ├── auth/[...nextauth]/  # Auth.js route handler
-│   │   └── advisor/
-│   │       ├── submit/     # POST — create a new analysis job
-│   │       ├── jobs/       # GET — list user's jobs; GET [id] — job detail + SSE
-│   │       ├── refine/     # POST — AI-powered challenge refinement
-│   │       └── strategies/ # GET — list available strategies
-│   ├── providers.tsx       # SessionProvider wrapper
-│   └── layout.tsx          # Root layout
-├── lib/
-│   ├── llm.ts              # OpenRouter API client (BYOK support)
-│   ├── db.ts               # Prisma client singleton
-│   ├── strategies.ts       # Strategy loader (reads markdown configs)
-│   ├── types.ts            # Shared TypeScript types
-│   └── orchestrators/      # Strategy execution engines
-│       ├── multi-round-consensus.ts  # Consensus Board
-│       ├── manager-worker.ts         # Deep Dive
-│       ├── parallel-aggregate.ts     # Round Table
-│       ├── sequential-debate.ts      # Stress Tester
-│       └── all-angles.ts            # All Angles (meta)
-├── strategies/             # Strategy config files (markdown + frontmatter)
-│   ├── consensus-board.md
-│   ├── deep-dive.md
-│   ├── round-table.md
-│   ├── stress-tester.md
-│   └── all-angles.md
-├── auth.ts                 # Auth.js config (magic link + Prisma adapter)
-├── proxy.ts                # Route protection (Next.js 16 proxy)
-└── generated/prisma/       # Prisma generated client (gitignored)
-```
+RightMind orchestrates multiple AI models — each with genuinely different reasoning architectures — into structured analytical workflows. Your question gets debated, stress-tested, and synthesised before the answer reaches you.
 
-## Intelligence Strategies
+## What happens when you submit a challenge
 
-| Strategy | Workflow | What it does |
+**1. Refine** — A lightweight model analyses your rough description and generates targeted clarifying questions: budget ranges, timelines, constraints. It classifies your problem type and recommends the best strategy automatically.
+
+**2. Analyse** — Your challenge goes to a team of AI agents, each running on a different model (Claude, GPT, Gemini, DeepSeek). Depending on your chosen strategy, they work in parallel, debate adversarially, negotiate consensus, or decompose the problem into sub-tasks. Every agent has live internet access.
+
+**3. Synthesise** — A Judge model reads all agent outputs and produces the final report: agreements, tensions, a verdict, and concrete next steps. One clear recommendation, backed by multiple independent analyses.
+
+## Four strategies, four reasoning topologies
+
+Not every problem needs the same analytical approach.
+
+| Strategy | What it does | Best for |
 |---|---|---|
-| 🏛️ **Consensus Board** | Multi-round consensus | Multiple models debate across rounds until convergence |
-| 🔬 **Deep Dive** | Manager-worker | A manager delegates sub-tasks to specialist worker models |
-| 🤝 **Round Table** | Parallel aggregate | All models respond in parallel, then a synthesiser merges |
-| ⚔️ **Stress Tester** | Sequential debate | Models critique and refine each other's responses in sequence |
-| 🔮 **All Angles** | Meta-orchestrator | Runs all four strategies, then synthesises a final report |
+| 🏛️ **Consensus Board** | Four specialists analyse independently, then a judge synthesises. Based on the [Mixture-of-Agents](https://arxiv.org/abs/2411.03284) paradigm. | Open-ended strategic questions |
+| 🔬 **Deep Dive** | A manager decomposes your challenge into sub-tasks, specialists solve each in depth, then it integrates. Based on [hierarchical decomposition](https://arxiv.org/abs/2604.08931). | Complex multi-dimensional problems |
+| ⚔️ **Stress Tester** | A proposer builds the case, a devil's advocate attacks it, a refiner strengthens it. Capped at 2 rounds to [prevent drift](https://arxiv.org/abs/2502.19559). | Testing an existing idea or plan |
+| 🤝 **Round Table** | Multi-round collaborative discussion with structured agree/disagree assessments. [Role-anchored](https://arxiv.org/abs/2604.19005) so agents can't cave to social pressure. | Nuanced problems requiring negotiation |
 
-## Prerequisites
+**🔮 All Angles** runs all four simultaneously, then a Meta-Judge performs cross-strategy analysis — showing where they converge (high confidence) and where they diverge (genuine uncertainty).
+
+## Why different models matter
+
+RightMind deliberately uses models from **four different providers**: Anthropic Claude, OpenAI GPT, Google Gemini, and DeepSeek R1. This isn't arbitrary. Each model family was trained on different data, with different architectures, by different teams with different priorities. [Research confirms](https://arxiv.org/abs/2505.16997) that this architectural diversity produces genuinely independent reasoning paths — which is what you want when the goal is to surface blind spots and build confidence through convergence.
+
+## The details that compound
+
+- **Smart Refine** classifies your problem type and auto-selects the best strategy, so you don't need to understand multi-agent AI.
+- **Live web search** on every agent — recommendations grounded in current data, not stale training.
+- **Drift prevention** — the original challenge is re-injected at every debate stage.
+- **Role anchoring** — a Financial Analyst stays a Financial Analyst even when three other agents disagree.
+- **Minority dissent is flagged, not suppressed** — consensus ≠ correctness, informed by [conformal social choice theory](https://arxiv.org/abs/2604.07667).
+- **Reasoning traces** — toggle to see the raw thinking process of each model, not just the polished output.
+
+## Built on research
+
+Every architectural decision is grounded in peer-reviewed multi-agent AI research:
+
+- [SMoA: Sparse Mixture-of-Agents](https://arxiv.org/abs/2411.03284) — Sparse agent selection beats dense all-to-all
+- [X-MAS: Heterogeneous LLMs](https://arxiv.org/abs/2505.16997) — Diverse architectures outperform single models with different prompts
+- [More Agents Is All You Need](https://arxiv.org/abs/2402.05120) — Scaling agent count improves accuracy via majority-vote convergence
+- [Topologies of Reasoning](https://arxiv.org/abs/2401.14295) — No single topology dominates; different structures excel at different tasks
+- [ReConcile](https://arxiv.org/abs/2309.13007) — Structured multi-round agree/disagree produces richer outputs than parallel-only
+- [RADAR](https://arxiv.org/abs/2604.19005) — Strict role anchoring prevents conformity under social pressure
+- [Multi-Agent Adversarial Debate](https://arxiv.org/abs/2401.05998) — Adversarial debate significantly improves reasoning robustness
+- [Problem Drift in Debate](https://arxiv.org/abs/2502.19559) — Debates beyond 2–3 rounds cause drift; re-inject the original problem
+- [Conformal Social Choice](https://arxiv.org/abs/2604.07667) — Consensus across independent methods provides statistical confidence
+- [Tutor-Student Interaction](https://arxiv.org/abs/2604.08931) — Hierarchical decomposition outperforms flat debate for complex problems
+
+---
+
+## Getting started
+
+### Prerequisites
 
 - **Node.js** 20+
 - **npm** 9+
 - An **OpenRouter API key** from [openrouter.ai](https://openrouter.ai)
-
-## Setup
 
 ### 1. Clone and install
 
@@ -71,7 +75,7 @@ npm install
 
 ### 2. Environment variables
 
-Create a `.env` file (or edit the existing one):
+Create a `.env` file:
 
 ```env
 # Database (SQLite, default path)
@@ -91,14 +95,9 @@ AUTH_URL="http://localhost:3000"
 ### 3. Database setup
 
 ```bash
-# Run migrations to create all tables
 npx prisma migrate dev
-
-# Generate the Prisma client
 npx prisma generate
-
-# Seed your user account (edit prisma/seed.ts with your email first)
-npx tsx --tsconfig tsconfig.json prisma/seed.ts
+npx tsx --tsconfig tsconfig.json prisma/seed.ts  # edit prisma/seed.ts with your email first
 ```
 
 ### 4. Start the dev server
@@ -111,54 +110,58 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Authentication
 
-RightMind uses **Magic Link** authentication via Auth.js (NextAuth v5):
+Magic link authentication via Auth.js (NextAuth v5):
 
 1. Visit any `/advisor` route — you'll be redirected to `/login`
-2. Enter your email address and click **Send magic link**
-3. **In development**: the magic link URL is printed to the terminal — copy and paste it into your browser
-4. **In production**: the link is emailed via [Resend](https://resend.com) (requires `AUTH_RESEND_KEY`)
+2. Enter your email and click **Send magic link**
+3. **Development**: the magic link URL is printed to the terminal
+4. **Production**: emailed via [Resend](https://resend.com) (requires `AUTH_RESEND_KEY`)
 5. Sessions last 30 days
 
 ### BYOK (Bring Your Own Key)
 
-Each user's OpenRouter API key is stored in the database linked to their email. This means:
+Each user's OpenRouter API key is stored in the database linked to their email:
 - Each user pays for their own LLM usage
-- Keys persist across sessions — set it once, use it forever
-- The platform falls back to the `OPENROUTER_API_KEY` env var if no per-user key is set
+- Keys persist across sessions
+- Falls back to the `OPENROUTER_API_KEY` env var if no per-user key is set
 
-## Database Management
+## Architecture
 
-### Backup
-
-```bash
-npm run db:backup
+```
+src/
+├── app/
+│   ├── login/              # Magic link auth pages
+│   ├── advisor/            # Dashboard, strategy pages, job viewer
+│   │   ├── jobs/           # Job history (per-user)
+│   │   ├── strategy/[id]/  # Strategy detail pages
+│   │   └── why/            # Platform explainer & research
+│   ├── api/
+│   │   ├── auth/[...nextauth]/  # Auth.js route handler
+│   │   └── advisor/
+│   │       ├── submit/     # POST — create a new analysis job
+│   │       ├── jobs/       # GET — list jobs; GET [id] — job detail + SSE
+│   │       ├── refine/     # POST — AI-powered challenge refinement
+│   │       └── strategies/ # GET — list available strategies
+│   ├── providers.tsx       # SessionProvider wrapper
+│   └── layout.tsx          # Root layout
+├── lib/
+│   ├── llm.ts              # OpenRouter API client (BYOK)
+│   ├── db.ts               # Prisma client singleton
+│   ├── strategies.ts       # Strategy loader (markdown configs)
+│   ├── types.ts            # Shared TypeScript types
+│   └── orchestrators/      # Strategy execution engines
+│       ├── multi-round-consensus.ts  # Consensus Board
+│       ├── manager-worker.ts         # Deep Dive
+│       ├── parallel-aggregate.ts     # Round Table
+│       ├── sequential-debate.ts      # Stress Tester
+│       └── all-angles.ts            # All Angles (meta)
+├── strategies/             # Strategy configs (markdown + frontmatter)
+├── auth.ts                 # Auth.js config (magic link + Prisma adapter)
+├── proxy.ts                # Route protection (Next.js 16 proxy)
+└── generated/prisma/       # Prisma generated client (gitignored)
 ```
 
-Creates a timestamped copy in `prisma/backups/`.
-
-### Restore
-
-```bash
-copy prisma\backups\dev-2026-05-04T15-42-00.db prisma\dev.db
-```
-
-### Reset (⚠️ destructive)
-
-```bash
-npx prisma migrate reset --force
-```
-
-This wipes all data and re-applies migrations. Always backup first.
-
-### View data
-
-```bash
-npx prisma studio
-```
-
-Opens a browser UI to inspect and edit database records.
-
-## Available Scripts
+## Scripts
 
 | Command | Description |
 |---|---|
@@ -168,19 +171,11 @@ Opens a browser UI to inspect and edit database records.
 | `npm run lint` | Run ESLint |
 | `npm run db:backup` | Backup SQLite database |
 
-## Tech Stack
+## Tech stack
 
 - **Framework**: Next.js 16 (App Router, Turbopack)
 - **Auth**: Auth.js v5 (magic link email)
 - **Database**: SQLite + Prisma ORM
 - **LLM Gateway**: OpenRouter (Claude, GPT, Gemini, DeepSeek)
 - **Email**: Resend (production only)
-- **Styling**: Vanilla CSS + Tailwind CSS
-
-## Project Conventions
-
-- **Proxy** (`src/proxy.ts`): Next.js 16 renamed middleware to proxy. Protects `/advisor/*` routes.
-- **Strategies** are defined as markdown files with YAML frontmatter in `src/strategies/`. The frontmatter configures agents, models, and workflow type.
-- **Orchestrators** in `src/lib/orchestrators/` implement the execution logic for each workflow type.
-- **LLM calls** go through `src/lib/llm.ts` which handles OpenRouter API calls, web search, JSON mode, and reasoning traces.
-- **Jobs** are tracked in the database with real-time progress via Server-Sent Events (SSE).
+- **Styling**: Vanilla CSS
