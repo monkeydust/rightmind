@@ -1,0 +1,101 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Auth.js Models ─────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  openRouterKey String?   // BYOK — encrypted per-user OpenRouter API key
+  accounts      Account[]
+  sessions      Session[]
+  jobs          AdvisorJob[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── Application Models ─────────────────────────────────────
+
+model AdvisorJob {
+  id            String   @id @default(uuid())
+  userId        String?  // Links job to user (nullable for migration)
+  user          User?    @relation(fields: [userId], references: [id])
+  challenge     String   // The user's input challenge text
+  strategyId    String   // Maps to strategy config id (e.g. "consensus-board")
+  executionMode String   @default("instant") // "instant" or "overnight"
+  status        String   @default("PENDING") // PENDING | RUNNING | DONE | FAILED
+  progress      String   @default("[]") // JSON array of step completions
+  report        String?  // Final markdown report (null until complete)
+  error         String?  // Error message if status = FAILED
+  parentJobId   String?  // For all-angles: links child strategy jobs to the parent
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  completedAt   DateTime?
+
+  // Individual agent responses stored for debug/transparency
+  agentResponses AgentResponse[]
+}
+
+model AgentResponse {
+  id          String   @id @default(uuid())
+  jobId       String
+  job         AdvisorJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  agentRole   String   // e.g. "Risk Analyst", "Devil's Advocate"
+  agentModel  String   // e.g. "anthropic/claude-opus-4-7"
+  round       Int      @default(1) // Which round of the workflow
+  phase       String?  // e.g. "draft", "critique", "refine" (for sequential strategies)
+  prompt      String   // The full prompt sent to the model
+  response    String   // The model's response
+  reasoning   String?  // The model's thinking/reasoning trace (if requested)
+  tokens      Int      @default(0) // Total tokens used
+  durationMs  Int      @default(0) // How long the call took
+  createdAt   DateTime @default(now())
+}
+
