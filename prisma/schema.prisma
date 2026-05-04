@@ -19,7 +19,8 @@ model User {
   email         String    @unique
   emailVerified DateTime?
   image         String?
-  openRouterKey String?   // BYOK — encrypted per-user OpenRouter API key
+  openRouterKey   String?   // BYOK — encrypted per-user OpenRouter API key
+  emailOnComplete Boolean   @default(false) // Send email when job finishes
   accounts      Account[]
   sessions      Session[]
   jobs          AdvisorJob[]

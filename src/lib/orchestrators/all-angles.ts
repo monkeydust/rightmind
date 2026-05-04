@@ -9,6 +9,7 @@
 import { prisma } from "@/lib/db";
 import { callModel } from "@/lib/llm";
 import { isJobCancelled, clearCancellation } from "@/lib/cancellation";
+import { onJobComplete } from "@/lib/job-complete";
 import { getStrategyById } from "@/lib/strategies";
 import { orchestrateParallelAggregate } from "./parallel-aggregate";
 import { orchestrateSequentialDebate } from "./sequential-debate";
@@ -252,6 +253,7 @@ export async function orchestrateAllAngles({
 
     console.log(`[Job ${jobId}] ✅ All Angles complete.`);
     clearCancellation(jobId);
+    await onJobComplete(jobId);
   } catch (error) {
     const cancelled = isJobCancelled(jobId);
     clearCancellation(jobId);

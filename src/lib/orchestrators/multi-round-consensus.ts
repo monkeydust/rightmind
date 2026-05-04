@@ -12,6 +12,7 @@
 import { prisma } from "@/lib/db";
 import { callModel } from "@/lib/llm";
 import { isJobCancelled, clearCancellation } from "@/lib/cancellation";
+import { onJobComplete } from "@/lib/job-complete";
 import type { StrategyConfig, AgentStepProgress, RoundTableResponse } from "@/lib/types";
 
 interface OrchestrationOptions {
@@ -277,6 +278,7 @@ export async function orchestrateMultiRoundConsensus({
 
     console.log(`[Job ${jobId}] ✅ Round Table complete (${roundsCompleted} rounds, consensus: ${consensusReached}).`);
     clearCancellation(jobId);
+    await onJobComplete(jobId);
   } catch (error) {
     const cancelled = isJobCancelled(jobId);
     clearCancellation(jobId);

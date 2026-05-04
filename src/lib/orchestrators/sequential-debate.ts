@@ -11,6 +11,7 @@
 import { prisma } from "@/lib/db";
 import { callModel } from "@/lib/llm";
 import { isJobCancelled, clearCancellation } from "@/lib/cancellation";
+import { onJobComplete } from "@/lib/job-complete";
 import type { StrategyConfig, AgentStepProgress } from "@/lib/types";
 
 interface OrchestrationOptions {
@@ -294,6 +295,7 @@ export async function orchestrateSequentialDebate({
 
     console.log(`[Job ${jobId}] ✅ Stress Tester complete.`);
     clearCancellation(jobId);
+    await onJobComplete(jobId);
   } catch (error) {
     const cancelled = isJobCancelled(jobId);
     clearCancellation(jobId);

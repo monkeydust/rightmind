@@ -19,7 +19,7 @@ export async function GET() {
 
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
-    select: { openRouterKey: true, email: true },
+    select: { openRouterKey: true, email: true, emailOnComplete: true },
   });
 
   // Count user's jobs
@@ -78,6 +78,7 @@ export async function GET() {
     email: user?.email || "",
     hasKey: !!user?.openRouterKey,
     maskedKey: user?.openRouterKey ? maskKey(user.openRouterKey) : null,
+    emailOnComplete: user?.emailOnComplete ?? false,
     credits,
     jobCount,
   });
@@ -89,8 +90,19 @@ export async function POST(request: Request) {
     return Response.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  const { apiKey } = await request.json();
+  const body = await request.json();
 
+  // Handle emailOnComplete toggle
+  if (typeof body.emailOnComplete === "boolean") {
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: { emailOnComplete: body.emailOnComplete },
+    });
+    return Response.json({ success: true, emailOnComplete: body.emailOnComplete });
+  }
+
+  // Handle API key update
+  const apiKey = body.apiKey;
   if (typeof apiKey !== "string") {
     return Response.json({ error: "Invalid API key" }, { status: 400 });
   }

@@ -14,6 +14,8 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [credits, setCredits] = useState<{ balance: number | null; totalCredits: number | null; totalUsage: number | null; keyUsage: number | null }>({ balance: null, totalCredits: null, totalUsage: null, keyUsage: null });
   const [jobCount, setJobCount] = useState(0);
+  const [emailOnComplete, setEmailOnComplete] = useState(false);
+  const [togglingEmail, setTogglingEmail] = useState(false);
   const searchParams = useSearchParams();
   const isSetup = searchParams.get("setup") === "1";
 
@@ -26,6 +28,7 @@ export default function SettingsPage() {
       setMaskedKey(data.maskedKey);
       setCredits(data.credits || { balance: null, limit: null });
       setJobCount(data.jobCount || 0);
+      setEmailOnComplete(data.emailOnComplete ?? false);
     } finally {
       setLoading(false);
     }
@@ -56,6 +59,26 @@ export default function SettingsPage() {
       setMessage({ type: "err", text: "Network error." });
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleToggleEmail() {
+    setTogglingEmail(true);
+    try {
+      const res = await fetch("/api/advisor/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emailOnComplete: !emailOnComplete }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setEmailOnComplete(data.emailOnComplete);
+        setMessage({ type: "ok", text: data.emailOnComplete ? "Email notifications enabled." : "Email notifications disabled." });
+      }
+    } catch {
+      setMessage({ type: "err", text: "Failed to update notification preference." });
+    } finally {
+      setTogglingEmail(false);
     }
   }
 
@@ -240,6 +263,55 @@ export default function SettingsPage() {
           Your key is stored in the database linked to your email. It is used to make LLM calls via OpenRouter.
           Get a key at <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" style={{ color: "var(--teal)" }}>openrouter.ai/keys</a>.
         </p>
+      </section>
+
+      {/* Notifications */}
+      <section style={{ marginBottom: "32px" }}>
+        <h2 style={{ fontSize: "13px", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--grey)", fontFamily: "var(--font-ui)", marginBottom: "12px" }}>
+          Notifications
+        </h2>
+        <div style={{ background: "var(--white)", border: "1px solid var(--rule)", borderRadius: "8px", padding: "20px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <div style={{ fontSize: "14px", fontWeight: 600, marginBottom: "4px" }}>Email when job completes</div>
+              <p style={{ fontSize: "13px", color: "var(--grey)", lineHeight: 1.6, margin: 0 }}>
+                Receive a summary email with a link to the full report when an analysis finishes.
+              </p>
+            </div>
+            <button
+              onClick={handleToggleEmail}
+              disabled={togglingEmail}
+              aria-label={emailOnComplete ? "Disable email notifications" : "Enable email notifications"}
+              style={{
+                position: "relative",
+                width: "44px",
+                height: "24px",
+                borderRadius: "12px",
+                border: "none",
+                background: emailOnComplete ? "var(--teal)" : "#ccc",
+                cursor: togglingEmail ? "wait" : "pointer",
+                transition: "background 0.2s ease",
+                flexShrink: 0,
+                marginLeft: "16px",
+                opacity: togglingEmail ? 0.6 : 1,
+              }}
+            >
+              <span
+                style={{
+                  position: "absolute",
+                  top: "2px",
+                  left: emailOnComplete ? "22px" : "2px",
+                  width: "20px",
+                  height: "20px",
+                  borderRadius: "50%",
+                  background: "#fff",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
+                  transition: "left 0.2s ease",
+                }}
+              />
+            </button>
+          </div>
+        </div>
       </section>
 
       {/* Privacy */}
