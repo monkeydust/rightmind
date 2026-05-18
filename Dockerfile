@@ -24,10 +24,6 @@ RUN npx prisma generate
 # Build Next.js
 RUN npm run build
 
-# Copy static assets into the standalone output directory
-RUN cp -r .next/static .next/standalone/.next/static
-RUN if [ -d "public" ]; then cp -r public .next/standalone/public; fi
-
 # Set environment to production
 ENV NODE_ENV=production
 
