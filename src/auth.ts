@@ -25,27 +25,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   ],
   callbacks: {
-    async signIn({ user, account }) {
-      // Debug: log what we receive
-      console.log("[auth] signIn callback:", JSON.stringify({ userId: user?.id, account: account }));
-      
-      // During the email-send phase, account is null — always allow it
-      // so the magic link actually gets sent. Only redirect after the
-      // user clicks the link and completes authentication.
-      if (!account) return true;
-
-      // After actual sign-in, check if user has an API key
-      // If not, redirect them to settings on first visit
-      if (user?.id) {
-        const { prisma } = await import("@/lib/db");
-        const dbUser = await prisma.user.findUnique({
-          where: { id: user.id },
-          select: { openRouterKey: true },
-        });
-        if (!dbUser?.openRouterKey) {
-          return "/advisor/settings?setup=1";
-        }
-      }
+    async signIn() {
+      // Always allow sign-in. API key setup redirect is handled
+      // client-side in the advisor layout after session is established.
       return true;
     },
     async session({ session, user }) {
