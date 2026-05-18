@@ -16,9 +16,12 @@ const FROM_ADDRESS = "RightMind <onboarding@resend.dev>";
 // ─── Magic Link Email ────────────────────────────────────────────────────────
 
 export async function sendMagicLinkEmail(email: string, url: string) {
+  console.log(`[Email] sendMagicLinkEmail called for ${email}`);
+  console.log(`[Email] Resend client initialized: ${!!resend}`);
+
   if (!resend) {
     console.log("\n╔══════════════════════════════════════════════════╗");
-    console.log("║  🔗  MAGIC LOGIN LINK (dev mode)                 ║");
+    console.log("║  🔗  MAGIC LOGIN LINK (no Resend key)            ║");
     console.log("╠══════════════════════════════════════════════════╣");
     console.log(`║  Email: ${email}`);
     console.log(`║  Link:  ${url}`);
@@ -26,32 +29,38 @@ export async function sendMagicLinkEmail(email: string, url: string) {
     return;
   }
 
-  await resend.emails.send({
-    from: FROM_ADDRESS,
-    to: email,
-    subject: "Sign in to RightMind",
-    html: `
-      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 0;">
-        <div style="margin-bottom: 24px;">
-          <span style="font-size: 20px; font-weight: 700; color: #1a1a1a; letter-spacing: -0.02em;">RightMind</span>
+  try {
+    const result = await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: email,
+      subject: "Sign in to RightMind",
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 0;">
+          <div style="margin-bottom: 24px;">
+            <span style="font-size: 20px; font-weight: 700; color: #1a1a1a; letter-spacing: -0.02em;">RightMind</span>
+          </div>
+          <h2 style="color: #1a1a1a; font-size: 18px; margin: 0 0 12px;">Sign in to your account</h2>
+          <p style="color: #666; line-height: 1.6; font-size: 15px; margin: 0 0 24px;">
+            Click the button below to sign in. This link expires in 10 minutes.
+          </p>
+          <a href="${url}" style="display: inline-block; padding: 12px 28px; background: #0d7680; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px;">
+            Sign in →
+          </a>
+          <p style="color: #999; font-size: 13px; margin-top: 32px; line-height: 1.5;">
+            If you didn't request this, you can safely ignore this email.
+          </p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+          <p style="color: #bbb; font-size: 11px; margin: 0;">
+            RightMind — Multi-agent advisory
+          </p>
         </div>
-        <h2 style="color: #1a1a1a; font-size: 18px; margin: 0 0 12px;">Sign in to your account</h2>
-        <p style="color: #666; line-height: 1.6; font-size: 15px; margin: 0 0 24px;">
-          Click the button below to sign in. This link expires in 10 minutes.
-        </p>
-        <a href="${url}" style="display: inline-block; padding: 12px 28px; background: #0d7680; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px;">
-          Sign in →
-        </a>
-        <p style="color: #999; font-size: 13px; margin-top: 32px; line-height: 1.5;">
-          If you didn't request this, you can safely ignore this email.
-        </p>
-        <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
-        <p style="color: #bbb; font-size: 11px; margin: 0;">
-          RightMind — Multi-agent advisory
-        </p>
-      </div>
-    `,
-  });
+      `,
+    });
+    console.log(`[Email] Magic link sent successfully to ${email}:`, JSON.stringify(result));
+  } catch (error) {
+    console.error(`[Email] Failed to send magic link to ${email}:`, error);
+    throw error; // Re-throw so Auth.js can handle it
+  }
 }
 
 // ─── Job Completion Email ────────────────────────────────────────────────────
