@@ -11,8 +11,9 @@
 import { prisma } from "@/lib/db";
 import { callModel } from "@/lib/llm";
 import { isJobCancelled, clearCancellation } from "@/lib/cancellation";
-import { onJobComplete } from "@/lib/job-complete";
-import type { StrategyConfig, AgentStepProgress } from "@/lib/types";
+import { onJobComplete, onJobFailed } from "@/lib/job-complete";
+import { buildUserContent, resolveAgentModel } from "@/lib/file-content";
+import type { StrategyConfig, AgentStepProgress, FileAttachment } from "@/lib/types";
 
 interface OrchestrationOptions {
   jobId: string;
@@ -20,6 +21,7 @@ interface OrchestrationOptions {
   challenge: string;
   promptOverrides?: Record<string, string>;
   includeReasoning?: boolean;
+  file?: FileAttachment;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -77,6 +79,7 @@ export async function orchestrateSequentialDebate({
   challenge,
   promptOverrides,
   includeReasoning,
+  file,
 }: OrchestrationOptions): Promise<void> {
   const maxRounds = strategy.maxRounds ?? 2;
   const judgeRole = strategy.judge.role;
@@ -129,10 +132,10 @@ export async function orchestrateSequentialDebate({
         : `# Original Challenge\n\n${challenge}\n\n---\n\n# Previous Critique\n\n${critiqueText}\n\n---\n\n# Your Previous Refined Proposal\n\n${refinedText}\n\n---\n\nBased on the above critique of your refined proposal, produce an EVEN STRONGER version. Address every valid point.`;
 
       const proposerResponse = await callModel(
-        getModel(strategy, proposerRole),
+        resolveAgentModel(getModel(strategy, proposerRole), file),
         [
           { role: "system", content: proposerPrompt },
-          { role: "user", content: proposerUserMsg },
+          { role: "user", content: await buildUserContent(proposerUserMsg, file) },
         ],
         { temperature: 0.6, ...reasoningOpts(includeReasoning) }
       );
@@ -170,10 +173,10 @@ export async function orchestrateSequentialDebate({
       const criticUserMsg = `# Original Challenge\n\n${challenge}\n\n---\n\n# Proposal to Critique\n\n${proposalText}`;
 
       const criticResponse = await callModel(
-        getModel(strategy, criticRole),
+        resolveAgentModel(getModel(strategy, criticRole), file),
         [
           { role: "system", content: criticPrompt },
-          { role: "user", content: criticUserMsg },
+          { role: "user", content: await buildUserContent(criticUserMsg, file) },
         ],
         { temperature: 0.6, ...reasoningOpts(includeReasoning) }
       );
@@ -211,10 +214,10 @@ export async function orchestrateSequentialDebate({
       const refinerUserMsg = `# Original Challenge\n\n${challenge}\n\n---\n\n# Proposal\n\n${proposalText}\n\n---\n\n# Devil's Advocate Critique\n\n${critiqueText}\n\n---\n\nProduce a STRONGER, REVISED version that addresses the valid criticisms.`;
 
       const refinerResponse = await callModel(
-        getModel(strategy, refinerRole),
+        resolveAgentModel(getModel(strategy, refinerRole), file),
         [
           { role: "system", content: refinerPrompt },
-          { role: "user", content: refinerUserMsg },
+          { role: "user", content: await buildUserContent(refinerUserMsg, file) },
         ],
         { temperature: 0.5, ...reasoningOpts(includeReasoning) }
       );
@@ -256,10 +259,10 @@ export async function orchestrateSequentialDebate({
     const judgeUserMsg = `# Original Challenge\n\n${challenge}\n\n---\n\n# Full Debate History\n\n${debateHistory.join("\n\n---\n\n")}`;
 
     const judgeResponse = await callModel(
-      getModel(strategy, judgeRole),
+      resolveAgentModel(getModel(strategy, judgeRole), file),
       [
         { role: "system", content: judgePrompt },
-        { role: "user", content: judgeUserMsg },
+        { role: "user", content: await buildUserContent(judgeUserMsg, file) },
       ],
       { temperature: 0.5, max_tokens: 8192, ...reasoningOpts(includeReasoning) }
     );

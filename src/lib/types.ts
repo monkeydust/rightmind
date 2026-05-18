@@ -87,9 +87,25 @@ export interface JobProgress {
 
 // ─── LLM Types ──────────────────────────────────────────────────────────────
 
+/** Multimodal content parts for OpenRouter's chat completions API */
+export type ContentPart =
+  | { type: "text"; text: string }
+  | { type: "file"; file: { filename: string; file_data: string } }
+  | { type: "image_url"; image_url: { url: string } };
+
 export interface LLMMessage {
   role: "system" | "user" | "assistant";
-  content: string;
+  content: string | ContentPart[];
+}
+
+/** File attachment passed through the orchestration pipeline */
+export interface FileAttachment {
+  /** Original filename (e.g. "business-plan.pdf") */
+  fileName: string;
+  /** Base64 data URL (e.g. "data:application/pdf;base64,...") */
+  fileData: string;
+  /** MIME type (e.g. "application/pdf", "image/png") */
+  mimeType: string;
 }
 
 export interface LLMRequest {

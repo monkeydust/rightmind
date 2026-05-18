@@ -9,11 +9,13 @@
 import { prisma } from "@/lib/db";
 import { callModel } from "@/lib/llm";
 import { isJobCancelled, clearCancellation } from "@/lib/cancellation";
-import { onJobComplete } from "@/lib/job-complete";
+import { onJobComplete, onJobFailed } from "@/lib/job-complete";
+import { buildUserContent, resolveAgentModel } from "@/lib/file-content";
 import type {
   StrategyConfig,
   AgentStepProgress,
   ManagerDecomposition,
+  FileAttachment,
 } from "@/lib/types";
 
 interface OrchestrationOptions {
@@ -22,6 +24,7 @@ interface OrchestrationOptions {
   challenge: string;
   promptOverrides?: Record<string, string>;
   includeReasoning?: boolean;
+  file?: FileAttachment;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -76,6 +79,7 @@ export async function orchestrateManagerWorker({
   challenge,
   promptOverrides,
   includeReasoning,
+  file,
 }: OrchestrationOptions): Promise<void> {
   const managerRole = "Manager";
   const workerRole = "Specialist Worker";
@@ -99,10 +103,10 @@ export async function orchestrateManagerWorker({
 
     const managerPrompt = getPrompt(strategy, managerRole, promptOverrides);
     const managerResponse = await callModel(
-      getModel(strategy, managerRole),
+      resolveAgentModel(getModel(strategy, managerRole), file),
       [
         { role: "system", content: managerPrompt },
-        { role: "user", content: challenge },
+        { role: "user", content: await buildUserContent(challenge, file) },
       ],
       { json: true, temperature: 0.4, ...reasoningOpts(includeReasoning) }
     );
@@ -176,10 +180,10 @@ export async function orchestrateManagerWorker({
         const taskPromptForWorker = `## Sub-Task ${task.id}: ${task.title}\n\n${task.description}\n\n**Expertise needed:** ${task.expertise_needed}\n**Expected output:** ${task.expected_output}`;
 
         const workerResponse = await callModel(
-          workerModel,
+          resolveAgentModel(workerModel, file),
           [
             { role: "system", content: workerPrompt },
-            { role: "user", content: taskPromptForWorker },
+            { role: "user", content: await buildUserContent(taskPromptForWorker, file) },
           ],
           { temperature: 0.6, ...reasoningOpts(includeReasoning) }
         );
@@ -234,10 +238,10 @@ export async function orchestrateManagerWorker({
     const judgeUserMessage = `# Original Challenge\n\n${challenge}\n\n---\n\n# Manager's Decomposition\n\n**Summary:** ${decomposition.challenge_summary}\n**Rationale:** ${decomposition.decomposition_rationale}\n\n---\n\n# Specialist Worker Outputs\n\n${workerOutputs}`;
 
     const judgeResponse = await callModel(
-      getModel(strategy, judgeRole),
+      resolveAgentModel(getModel(strategy, judgeRole), file),
       [
         { role: "system", content: judgePrompt },
-        { role: "user", content: judgeUserMessage },
+        { role: "user", content: await buildUserContent(judgeUserMessage, file) },
       ],
       { temperature: 0.5, max_tokens: 8192, ...reasoningOpts(includeReasoning) }
     );
@@ -297,5 +301,9 @@ export async function orchestrateManagerWorker({
         }),
       },
     });
+
+    if (!cancelled) {
+      await onJobFailed(jobId);
+    }
   }
 }

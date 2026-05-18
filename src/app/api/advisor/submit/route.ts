@@ -14,12 +14,20 @@ import { orchestrateSequentialDebate } from "@/lib/orchestrators/sequential-deba
 import { orchestrateMultiRoundConsensus } from "@/lib/orchestrators/multi-round-consensus";
 import { orchestrateAllAngles } from "@/lib/orchestrators/all-angles";
 
+import type { FileAttachment } from "@/lib/types";
+
 interface SubmitRequest {
   challenge: string;
   strategyId: string;
   executionMode: "instant" | "overnight";
   promptOverrides?: Record<string, string>;
   includeReasoning?: boolean;
+  /** Base64 data URL of an uploaded file (e.g. "data:application/pdf;base64,...") */
+  fileData?: string;
+  /** Original filename */
+  fileName?: string;
+  /** MIME type of the uploaded file */
+  mimeType?: string;
 }
 
 export async function POST(request: Request) {
@@ -72,12 +80,19 @@ export async function POST(request: Request) {
       data: {
         userId: session.user.id,
         challenge: body.challenge.trim(),
+        fileName: body.fileName || null,
         strategyId: body.strategyId,
         executionMode: "instant",
         status: "PENDING",
         progress: JSON.stringify([]),
       },
     });
+
+    // Build file attachment if present
+    const fileAttachment: FileAttachment | undefined =
+      body.fileData && body.fileName && body.mimeType
+        ? { fileData: body.fileData, fileName: body.fileName, mimeType: body.mimeType }
+        : undefined;
 
     // Fire-and-forget: kick off the orchestrator
     const orchestrationOpts = {
@@ -86,6 +101,7 @@ export async function POST(request: Request) {
       challenge: body.challenge.trim(),
       promptOverrides: body.promptOverrides,
       includeReasoning: body.includeReasoning,
+      file: fileAttachment,
     };
 
     // Route to the correct orchestrator based on workflow type

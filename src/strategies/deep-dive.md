@@ -18,7 +18,7 @@ arxivPapers:
     insight: "Hierarchical decomposition outperforms flat debate for complex, multi-step problems"
 agents:
   - role: "Manager"
-    model: "openai/gpt-5.5"
+    model: "openai/gpt-5.4"
     color: "#f59e0b"
     phase: "plan"
     systemPrompt: |
@@ -70,7 +70,7 @@ agents:
 
 judge:
   role: "Manager — Final Review"
-  model: "openai/gpt-5.5"
+  model: "openai/gpt-5.4"
   color: "#f59e0b"
   systemPrompt: |
     You are the Project Manager who originally decomposed the challenge into sub-tasks. Your specialists have now completed their work. You must review ALL specialist outputs and compile them into a comprehensive final report.

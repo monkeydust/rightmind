@@ -9,6 +9,19 @@ import type { LLMMessage, LLMResponse } from "./types";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
+/**
+ * When a file is attached, swap text-only models (DeepSeek R1) for
+ * a vision-capable alternative so every agent can see the document.
+ */
+const FILE_MODEL_SWAPS: Record<string, string> = {
+  "deepseek/deepseek-r1": "google/gemini-3.1-pro-preview",
+};
+
+export function resolveModel(model: string, hasFile: boolean): string {
+  if (!hasFile) return model;
+  return FILE_MODEL_SWAPS[model] ?? model;
+}
+
 export async function callModel(
   model: string,
   messages: LLMMessage[],
@@ -45,6 +58,17 @@ export async function callModel(
       data_collection: "deny",
     },
   };
+
+  // Use free Cloudflare AI for PDF parsing (avoid Mistral OCR costs)
+  // Only add the plugin if any message contains a file attachment
+  const hasFile = messages.some(
+    (m) => Array.isArray(m.content) && m.content.some((p) => p.type === "file")
+  );
+  if (hasFile) {
+    body.plugins = [
+      { id: "file-parser", pdf: { engine: "cloudflare-ai" } },
+    ];
+  }
 
   // JSON mode and web search are MUTUALLY EXCLUSIVE on OpenRouter.
   // Web search is on by default for non-JSON calls.
@@ -89,6 +113,11 @@ export async function callModel(
   const data = await res.json();
   const durationMs = Date.now() - startTime;
 
+  if (data.error) {
+    const errorMsg = data.error.message || JSON.stringify(data.error);
+    throw new Error(`OpenRouter Error: ${errorMsg}`);
+  }
+
   const choice = data.choices?.[0];
   if (!choice?.message?.content) {
     throw new Error(
@@ -112,3 +141,4 @@ export async function callModel(
     _durationMs: durationMs,
   };
 }
+

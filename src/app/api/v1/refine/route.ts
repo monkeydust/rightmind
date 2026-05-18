@@ -1,11 +1,12 @@
 /**
- * POST /api/advisor/refine
+ * POST /api/v1/refine
  *
- * Two-step challenge refinement:
- *   step: "questions"   → generates clarifying questions from a rough challenge
+ * Two-step challenge refinement for API consumers (e.g. OpenClaw).
+ *   step: "questions"   → generates clarifying questions
  *   step: "synthesise"  → weaves original + answers into a rich challenge
  */
 
+import { authenticateApiRequest } from "@/lib/api-auth";
 import { callModel } from "@/lib/llm";
 import type { LLMMessage } from "@/lib/types";
 
@@ -92,11 +93,20 @@ async function callAndParse(
 
 export async function POST(request: Request) {
   try {
+    const user = await authenticateApiRequest(request);
+    if (!user) {
+      return Response.json({ error: "Unauthorized. Invalid or missing API key." }, { status: 401 });
+    }
+
+    if (!user.openRouterKey) {
+      return Response.json({ error: "No OpenRouter API key configured for this user." }, { status: 403 });
+    }
+
     const body = await request.json();
     const { step, challenge } = body;
 
     if (!challenge?.trim()) {
-      return Response.json({ error: "Challenge is required" }, { status: 400 });
+      return Response.json({ error: "challenge is required" }, { status: 400 });
     }
 
     if (step === "questions") {
@@ -140,10 +150,7 @@ export async function POST(request: Request) {
       );
     }
   } catch (error) {
-    console.error("Refine error:", error);
-    return Response.json(
-      { error: "Refinement failed" },
-      { status: 500 }
-    );
+    console.error("API POST /v1/refine error:", error);
+    return Response.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

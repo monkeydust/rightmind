@@ -8,8 +8,9 @@
 import { prisma } from "@/lib/db";
 import { callModel } from "@/lib/llm";
 import { isJobCancelled, clearCancellation } from "@/lib/cancellation";
-import { onJobComplete } from "@/lib/job-complete";
-import type { StrategyConfig, AgentStepProgress } from "@/lib/types";
+import { onJobComplete, onJobFailed } from "@/lib/job-complete";
+import { buildUserContent, resolveAgentModel } from "@/lib/file-content";
+import type { StrategyConfig, AgentStepProgress, FileAttachment } from "@/lib/types";
 
 interface OrchestrationOptions {
   jobId: string;
@@ -17,6 +18,7 @@ interface OrchestrationOptions {
   challenge: string;
   promptOverrides?: Record<string, string>;
   includeReasoning?: boolean;
+  file?: FileAttachment;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -67,6 +69,7 @@ export async function orchestrateParallelAggregate({
   challenge,
   promptOverrides,
   includeReasoning,
+  file,
 }: OrchestrationOptions): Promise<void> {
   const judgeRole = strategy.judge.role;
 
@@ -100,11 +103,12 @@ export async function orchestrateParallelAggregate({
         await updateProgress(jobId, "analyse", [...agentSteps, judgeStep]);
 
         const prompt = getPrompt(strategy, agent.role, promptOverrides);
+        const model = resolveAgentModel(agent.model, file);
         const response = await callModel(
-          agent.model,
+          model,
           [
             { role: "system", content: prompt },
-            { role: "user", content: challenge },
+            { role: "user", content: await buildUserContent(challenge, file) },
           ],
           { temperature: 0.6, ...reasoningOpts(includeReasoning) }
         );
@@ -154,10 +158,10 @@ export async function orchestrateParallelAggregate({
     const judgeUserMessage = `# Original Challenge\n\n${challenge}\n\n---\n\n# Advisory Board Analyses\n\n${advisorOutputs}`;
 
     const judgeResponse = await callModel(
-      getModel(strategy, judgeRole),
+      resolveAgentModel(getModel(strategy, judgeRole), file),
       [
         { role: "system", content: judgePrompt },
-        { role: "user", content: judgeUserMessage },
+        { role: "user", content: await buildUserContent(judgeUserMessage, file) },
       ],
       { temperature: 0.5, max_tokens: 8192, ...reasoningOpts(includeReasoning) }
     );

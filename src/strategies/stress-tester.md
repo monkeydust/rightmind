@@ -40,7 +40,7 @@ agents:
       Format your response as a structured proposal with: Executive Summary, Core Thesis, Supporting Evidence, Implementation Outline, and Anticipated Objections (with rebuttals).
 
   - role: "Devil's Advocate"
-    model: "openai/gpt-5.5"
+    model: "openai/gpt-5.4"
     color: "#ef4444"
     phase: "critique"
     systemPrompt: |

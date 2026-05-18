@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -25,6 +25,7 @@ interface JobData {
   status: string;
   progress: Progress;
   challenge?: string;
+  fileName?: string;
   strategyId?: string;
   report?: string;
   error?: string;
@@ -175,6 +176,7 @@ interface ChildJobReport {
   strategyId: string;
   status: string;
   report: string | null;
+  models: string[];
 }
 
 const STRATEGY_LABELS: Record<string, { icon: string; name: string }> = {
@@ -182,6 +184,7 @@ const STRATEGY_LABELS: Record<string, { icon: string; name: string }> = {
   "deep-dive": { icon: "🔬", name: "Deep Dive" },
   "stress-tester": { icon: "⚔️", name: "Stress Tester" },
   "round-table": { icon: "🤝", name: "Round Table" },
+  "all-angles": { icon: "🔮", name: "All Angles" },
 };
 
 function ChildStrategyReports({ childJobIds }: { childJobIds: string[] }) {
@@ -194,8 +197,15 @@ function ChildStrategyReports({ childJobIds }: { childJobIds: string[] }) {
       childJobIds.map((id) =>
         fetch(`/api/advisor/jobs/${id}`)
           .then((r) => r.json())
-          .then((data) => ({ id, strategyId: data.strategyId, status: data.status, report: data.report } as ChildJobReport))
-          .catch(() => ({ id, strategyId: "unknown", status: "FAILED", report: null } as ChildJobReport))
+          .then((data) => {
+            let models: string[] = [];
+            if (data.progress?.steps) {
+              const uniqueModels = new Set(data.progress.steps.map((s: any) => s.agentModel).filter(Boolean));
+              models = Array.from(uniqueModels) as string[];
+            }
+            return { id, strategyId: data.strategyId, status: data.status, report: data.report, models } as ChildJobReport;
+          })
+          .catch(() => ({ id, strategyId: "unknown", status: "FAILED", report: null, models: [] } as ChildJobReport))
       )
     ).then((jobs) => {
       setChildJobs(jobs);
@@ -231,6 +241,13 @@ function ChildStrategyReports({ childJobIds }: { childJobIds: string[] }) {
                 <span style={{ fontSize: "10px", color: "var(--teal)", transition: "transform 0.2s", transform: isOpen ? "rotate(90deg)" : "rotate(0deg)", display: "inline-block" }}>▶</span>
                 <span style={{ fontSize: "18px" }}>{label.icon}</span>
                 <span style={{ fontWeight: 600 }}>{label.name}</span>
+                {cj.models.length > 0 && (
+                  <span style={{
+                    fontSize: "11px", color: "var(--grey-light)", fontFamily: "'Menlo','Consolas',monospace", marginLeft: "12px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "250px"
+                  }}>
+                    {cj.models.map(m => m.split('/').pop()).join(", ")}
+                  </span>
+                )}
                 <span style={{
                   marginLeft: "auto", fontSize: "11px", fontWeight: 600, textTransform: "uppercase",
                   color: cj.status === "DONE" ? "var(--teal)" : cj.status === "FAILED" ? "var(--claret)" : "var(--grey-light)",
@@ -272,6 +289,28 @@ const STRATEGY_DESCRIPTIONS: Record<string, string> = {
   "all-angles": "All four strategies (Consensus Board, Stress Tester, Round Table, Deep Dive) were run in parallel. A Meta-Judge then analysed where they agreed and diverged, producing a cross-strategy alignment matrix and confidence-weighted recommendation.",
 };
 
+async function copyTextToClipboard(text: string) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(text);
+  } else {
+    // Fallback for non-HTTPS environments like local IPs
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-999999px";
+    textArea.style.top = "-999999px";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      document.execCommand("copy");
+    } catch (err) {
+      console.error("Fallback copy failed", err);
+    }
+    textArea.remove();
+  }
+}
+
 function CopyBar({ jobId, challenge, strategyId, report, showReasoning, reasoningTraces }: {
   jobId: string;
   challenge: string;
@@ -292,13 +331,6 @@ function CopyBar({ jobId, challenge, strategyId, report, showReasoning, reasonin
       `### ${t.agentRole} (${t.agentModel})\nTokens: ${t.tokens}\n\n${t.reasoning}`
     );
     return `\n\n---\n\n## Agent Reasoning Traces\n\nThese are the internal thinking/reasoning traces from each agent before they produced their response.\n\n${lines.join("\n\n---\n\n")}`;
-  }
-
-  async function copyReport() {
-    const reasoning = showReasoning ? buildReasoningBlock(reasoningTraces) : "";
-    await navigator.clipboard.writeText(report + reasoning);
-    setCopyState("copied-report");
-    resetCopy();
   }
 
   async function copyForDiscussion() {
@@ -328,66 +360,9 @@ Please review this analysis. I'd like your perspective on:
 3. What you'd do differently
 4. Any blind spots in the analysis`;
 
-    await navigator.clipboard.writeText(text);
+    await copyTextToClipboard(text);
     setCopyState("copied-discussion");
     resetCopy();
-  }
-
-  async function copyFullTranscript() {
-    setCopyState("loading");
-    try {
-      const res = await fetch(`/api/advisor/jobs/${jobId}/transcript`);
-      const data = await res.json();
-      const entries: TranscriptEntry[] = data.responses || [];
-
-      const strategyLabel = STRATEGY_LABELS[strategyId] || { icon: "📄", name: strategyId };
-      const strategyDesc = STRATEGY_DESCRIPTIONS[strategyId] || "";
-
-      const agentSections = entries.map((e) => {
-        let section = `### ${e.agentRole} (${e.agentModel})`;
-        if (e.phase) section += `\nPhase: ${e.phase}`;
-        if (e.round > 1) section += ` · Round ${e.round}`;
-        if (showReasoning && e.reasoning) {
-          section += `\n\n**Reasoning trace:**\n${e.reasoning}`;
-        }
-        section += `\n\n**Response:**\n${e.response}`;
-        return section;
-      });
-
-      const text = `I've had the following challenge analysed by a multi-agent AI advisory system called RightMind. Below is the complete transcript — every individual agent's analysis, followed by the final synthesis. I'd like to discuss the findings with you.
-
-## My Challenge
-
-${challenge}
-
-## Strategy Used: ${strategyLabel.icon} ${strategyLabel.name}
-
-${strategyDesc}
-
-## Individual Agent Analyses
-
-${agentSections.join("\n\n---\n\n")}
-
----
-
-## Final Synthesised Report
-
-${report}
-
----
-
-Please review the full analysis above. I'd like your perspective on:
-1. Whether the individual agents' reasoning was sound
-2. Whether the synthesis accurately captured the key tensions and agreements
-3. What was missed or underweighted
-4. What you'd do differently`;
-
-      await navigator.clipboard.writeText(text);
-      setCopyState("copied-transcript");
-      resetCopy();
-    } catch {
-      setCopyState("idle");
-    }
   }
 
   const btnStyle: React.CSSProperties = {
@@ -418,18 +393,6 @@ Please review the full analysis above. I'd like your perspective on:
       marginBottom: "16px",
       flexWrap: "wrap",
     }}>
-      <span style={{ fontSize: "11px", color: "var(--grey-light)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600, marginRight: "4px" }}>
-        Export
-      </span>
-      <button
-        onClick={copyReport}
-        style={copyState === "copied-report" ? activeBtnStyle : btnStyle}
-        onMouseEnter={(e) => { if (copyState !== "copied-report") { e.currentTarget.style.borderColor = "var(--charcoal)"; e.currentTarget.style.color = "var(--charcoal)"; } }}
-        onMouseLeave={(e) => { if (copyState !== "copied-report") { e.currentTarget.style.borderColor = "var(--rule)"; e.currentTarget.style.color = "var(--grey)"; } }}
-        title="Copy the final synthesised report as markdown"
-      >
-        {copyState === "copied-report" ? "✓ Copied" : "📋 Copy report"}
-      </button>
       <button
         onClick={copyForDiscussion}
         style={copyState === "copied-discussion" ? activeBtnStyle : btnStyle}
@@ -438,16 +401,6 @@ Please review the full analysis above. I'd like your perspective on:
         title="Copy with your original challenge + discussion prompts — ready to paste into ChatGPT, Claude, or Gemini"
       >
         {copyState === "copied-discussion" ? "✓ Copied" : "💬 Copy for discussion"}
-      </button>
-      <button
-        onClick={copyFullTranscript}
-        disabled={copyState === "loading"}
-        style={copyState === "copied-transcript" ? activeBtnStyle : { ...btnStyle, opacity: copyState === "loading" ? 0.5 : 1 }}
-        onMouseEnter={(e) => { if (copyState !== "copied-transcript" && copyState !== "loading") { e.currentTarget.style.borderColor = "var(--charcoal)"; e.currentTarget.style.color = "var(--charcoal)"; } }}
-        onMouseLeave={(e) => { if (copyState !== "copied-transcript" && copyState !== "loading") { e.currentTarget.style.borderColor = "var(--rule)"; e.currentTarget.style.color = "var(--grey)"; } }}
-        title="Copy everything — each agent's individual analysis + the final synthesis. Best for deep discussion."
-      >
-        {copyState === "loading" ? "Loading..." : copyState === "copied-transcript" ? "✓ Copied" : "📑 Copy full transcript"}
       </button>
       {showReasoning && (
         <span style={{ fontSize: "10px", color: "var(--teal)", fontStyle: "italic" }}>
@@ -460,6 +413,7 @@ Please review the full analysis above. I'd like your perspective on:
 
 export default function JobDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const jobId = params.id as string;
   const [job, setJob] = useState<JobData>({
     status: "PENDING",
@@ -474,8 +428,35 @@ export default function JobDetailPage() {
   const [reasoningLoaded, setReasoningLoaded] = useState(false);
   const [expandedTraces, setExpandedTraces] = useState<Set<string>>(new Set());
   const [cancelling, setCancelling] = useState(false);
+  const [rerunning, setRerunning] = useState(false);
   const [emailNotify, setEmailNotify] = useState(false);
   const [elapsedNow, setElapsedNow] = useState(Date.now());
+
+  async function handleRerun() {
+    if (rerunning || !job.challenge || !job.strategyId) return;
+    setRerunning(true);
+    try {
+      const res = await fetch("/api/advisor/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          challenge: job.challenge,
+          strategyId: job.strategyId,
+          executionMode: "instant",
+        }),
+      });
+      const data = await res.json();
+      if (data.jobId) {
+        router.push(`/advisor/jobs/${data.jobId}`);
+      } else {
+        setRerunning(false);
+        alert(data.error || "Failed to re-run job");
+      }
+    } catch {
+      setRerunning(false);
+      alert("Network error while trying to re-run job");
+    }
+  }
 
   async function handleCancel() {
     if (cancelling) return;
@@ -591,7 +572,9 @@ export default function JobDetailPage() {
 
       {/* Header */}
       <div style={{ marginBottom: "24px" }}>
-        <h1 style={{ marginBottom: "6px" }}>Analysis</h1>
+        <h1 style={{ marginBottom: "6px" }}>
+          {job.strategyId ? STRATEGY_LABELS[job.strategyId]?.name || "Analysis" : "Analysis"}
+        </h1>
         <p
           style={{
             fontFamily: "'Menlo','Consolas',monospace",
@@ -625,6 +608,11 @@ export default function JobDetailPage() {
           {job.strategyId && (
             <p style={{ fontSize: "12px", color: "var(--grey-light)", marginTop: "6px" }}>
               Strategy: {job.strategyId}
+              {job.fileName && (
+                <span style={{ marginLeft: "12px", padding: "2px 8px", background: "rgba(13,118,128,0.06)", border: "1px solid rgba(13,118,128,0.15)", borderRadius: "10px", fontSize: "11px", color: "var(--teal)" }}>
+                  📎 {job.fileName}
+                </span>
+              )}
             </p>
           )}
         </div>
@@ -694,6 +682,30 @@ export default function JobDetailPage() {
             }}
           >
             {cancelling ? "Cancelling..." : "Cancel job"}
+          </button>
+        )}
+
+        {(job.status === "DONE" || job.status === "FAILED" || job.status === "CANCELLED") && (
+          <button
+            onClick={handleRerun}
+            disabled={rerunning}
+            style={{
+              marginLeft: "12px",
+              padding: "3px 12px",
+              fontSize: "11px",
+              fontWeight: 600,
+              fontFamily: "var(--font-ui)",
+              background: "none",
+              border: "1px solid var(--teal)",
+              borderRadius: "4px",
+              color: "var(--teal)",
+              cursor: rerunning ? "wait" : "pointer",
+              opacity: rerunning ? 0.5 : 1,
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+            }}
+          >
+            {rerunning ? "Starting..." : "↺ Re-run"}
           </button>
         )}
       </div>

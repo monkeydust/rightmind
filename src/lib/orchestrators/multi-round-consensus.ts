@@ -12,8 +12,9 @@
 import { prisma } from "@/lib/db";
 import { callModel } from "@/lib/llm";
 import { isJobCancelled, clearCancellation } from "@/lib/cancellation";
-import { onJobComplete } from "@/lib/job-complete";
-import type { StrategyConfig, AgentStepProgress, RoundTableResponse } from "@/lib/types";
+import { onJobComplete, onJobFailed } from "@/lib/job-complete";
+import { buildUserContent, resolveAgentModel } from "@/lib/file-content";
+import type { StrategyConfig, AgentStepProgress, RoundTableResponse, FileAttachment } from "@/lib/types";
 
 interface OrchestrationOptions {
   jobId: string;
@@ -21,6 +22,7 @@ interface OrchestrationOptions {
   challenge: string;
   promptOverrides?: Record<string, string>;
   includeReasoning?: boolean;
+  file?: FileAttachment;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -78,6 +80,7 @@ export async function orchestrateMultiRoundConsensus({
   challenge,
   promptOverrides,
   includeReasoning,
+  file,
 }: OrchestrationOptions): Promise<void> {
   const maxRounds = strategy.maxRounds ?? 3;
   const consensusThreshold = strategy.consensusThreshold ?? 0.8;
@@ -141,10 +144,10 @@ export async function orchestrateMultiRoundConsensus({
         }
 
         const response = await callModel(
-          agent.model,
+          resolveAgentModel(agent.model, file),
           [
             { role: "system", content: prompt },
-            { role: "user", content: userMsg },
+            { role: "user", content: await buildUserContent(userMsg, file) },
           ],
           {
             temperature: 0.5,
@@ -239,10 +242,10 @@ export async function orchestrateMultiRoundConsensus({
     const judgeUserMsg = `# Original Challenge\n\n${challenge}\n\n---\n\n${allRoundData.join("\n\n---\n\n")}${consensusNote}`;
 
     const judgeResponse = await callModel(
-      getModel(strategy, judgeRole),
+      resolveAgentModel(getModel(strategy, judgeRole), file),
       [
         { role: "system", content: judgePrompt },
-        { role: "user", content: judgeUserMsg },
+        { role: "user", content: await buildUserContent(judgeUserMsg, file) },
       ],
       { temperature: 0.5, max_tokens: 8192, ...reasoningOpts(includeReasoning) }
     );
@@ -299,5 +302,9 @@ export async function orchestrateMultiRoundConsensus({
         }),
       },
     });
+
+    if (!cancelled) {
+      await onJobFailed(jobId);
+    }
   }
 }

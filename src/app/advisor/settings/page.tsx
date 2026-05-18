@@ -16,12 +16,22 @@ export default function SettingsPage() {
   const [jobCount, setJobCount] = useState(0);
   const [emailOnComplete, setEmailOnComplete] = useState(false);
   const [togglingEmail, setTogglingEmail] = useState(false);
+  
+  // API Keys state
+  const [apiKeys, setApiKeys] = useState<{ id: string; name: string; prefix: string; createdAt: string }[]>([]);
+  const [newApiKeyName, setNewApiKeyName] = useState("");
+  const [createdKey, setCreatedKey] = useState<{ plainKey: string; name: string } | null>(null);
+  const [creatingKey, setCreatingKey] = useState(false);
+
   const searchParams = useSearchParams();
   const isSetup = searchParams.get("setup") === "1";
 
   const loadSettings = useCallback(async () => {
     try {
-      const res = await fetch("/api/advisor/settings");
+      const [res, keysRes] = await Promise.all([
+        fetch("/api/advisor/settings"),
+        fetch("/api/advisor/apikeys")
+      ]);
       const data = await res.json();
       setEmail(data.email || "");
       setHasKey(data.hasKey);
@@ -29,6 +39,11 @@ export default function SettingsPage() {
       setCredits(data.credits || { balance: null, limit: null });
       setJobCount(data.jobCount || 0);
       setEmailOnComplete(data.emailOnComplete ?? false);
+
+      const keysData = await keysRes.json();
+      if (keysData.keys) {
+        setApiKeys(keysData.keys);
+      }
     } finally {
       setLoading(false);
     }
@@ -51,7 +66,7 @@ export default function SettingsPage() {
         setMaskedKey(data.maskedKey);
         setEditing(false);
         setNewKey("");
-        setMessage({ type: "ok", text: data.hasKey ? "API key saved." : "API key removed." });
+        setMessage({ type: "ok", text: data.hasKey ? "OpenRouter API key saved." : "OpenRouter API key removed." });
       } else {
         setMessage({ type: "err", text: data.error || "Failed to save." });
       }
@@ -82,6 +97,48 @@ export default function SettingsPage() {
     }
   }
 
+  async function handleCreateApiKey() {
+    if (!newApiKeyName.trim()) return;
+    setCreatingKey(true);
+    try {
+      const res = await fetch("/api/advisor/apikeys", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newApiKeyName.trim() }),
+      });
+      const data = await res.json();
+      if (data.plainKey) {
+        setCreatedKey({ plainKey: data.plainKey, name: data.name });
+        setNewApiKeyName("");
+        // Reload list
+        const keysRes = await fetch("/api/advisor/apikeys");
+        const keysData = await keysRes.json();
+        if (keysData.keys) setApiKeys(keysData.keys);
+      } else {
+        setMessage({ type: "err", text: data.error || "Failed to create API key." });
+      }
+    } catch {
+      setMessage({ type: "err", text: "Failed to create API key." });
+    } finally {
+      setCreatingKey(false);
+    }
+  }
+
+  async function handleRevokeApiKey(id: string) {
+    if (!confirm("Are you sure you want to revoke this key? Any services using it will immediately lose access.")) return;
+    try {
+      const res = await fetch(`/api/advisor/apikeys/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setApiKeys((prev) => prev.filter((k) => k.id !== id));
+        setMessage({ type: "ok", text: "API key revoked successfully." });
+      } else {
+        setMessage({ type: "err", text: "Failed to revoke API key." });
+      }
+    } catch {
+      setMessage({ type: "err", text: "Failed to revoke API key." });
+    }
+  }
+
   if (loading) {
     return (
       <div style={{ padding: "48px 24px", maxWidth: "600px", margin: "0 auto" }}>
@@ -96,6 +153,19 @@ export default function SettingsPage() {
       <p style={{ color: "var(--grey)", fontSize: "14px", marginBottom: isSetup ? "16px" : "32px" }}>
         {isSetup ? "One last step before you can start running analyses." : "Manage your account and API key."}
       </p>
+
+      {/* Status message */}
+      {message && (
+        <div style={{
+          padding: "10px 16px", borderRadius: "6px", fontSize: "13px", fontFamily: "var(--font-ui)",
+          background: message.type === "ok" ? "#d1fae5" : "#fef2f2",
+          color: message.type === "ok" ? "#065f46" : "#991b1b",
+          border: `1px solid ${message.type === "ok" ? "#a7f3d0" : "#fecaca"}`,
+          marginBottom: "32px"
+        }}>
+          {message.text}
+        </div>
+      )}
 
       {isSetup && (
         <div style={{
@@ -195,7 +265,6 @@ export default function SettingsPage() {
                   {hasKey ? "Change" : "Add key"}
                 </button>
               </div>
-
             </>
           ) : (
             <>
@@ -259,10 +328,91 @@ export default function SettingsPage() {
             </>
           )}
         </div>
-        <p style={{ fontSize: "12px", color: "var(--grey-light)", marginTop: "8px", lineHeight: 1.5 }}>
-          Your key is stored in the database linked to your email. It is used to make LLM calls via OpenRouter.
-          Get a key at <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer" style={{ color: "var(--teal)" }}>openrouter.ai/keys</a>.
-        </p>
+      </section>
+
+      {/* RightMind API Keys */}
+      <section style={{ marginBottom: "32px" }}>
+        <h2 style={{ fontSize: "13px", textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--grey)", fontFamily: "var(--font-ui)", marginBottom: "12px" }}>
+          Developer API Keys
+        </h2>
+        <div style={{ background: "var(--white)", border: "1px solid var(--rule)", borderRadius: "8px", padding: "20px" }}>
+          <p style={{ fontSize: "13px", color: "var(--grey)", marginBottom: "16px", lineHeight: 1.5 }}>
+            Create API keys to integrate RightMind into external services (e.g. OpenClaw, Telegram bots, or CI/CD pipelines). 
+            Anyone with these keys can run jobs on your behalf using your OpenRouter credits.
+          </p>
+
+          {/* Create new key */}
+          <div style={{ display: "flex", gap: "8px", marginBottom: "20px" }}>
+            <input 
+              type="text" 
+              placeholder="Key Name (e.g. 'OpenClaw Bot')" 
+              value={newApiKeyName}
+              onChange={(e) => setNewApiKeyName(e.target.value)}
+              style={{
+                flex: 1, padding: "8px 12px", fontSize: "13px",
+                border: "1px solid var(--rule)", borderRadius: "6px",
+                background: "var(--cream)", outline: "none",
+              }}
+            />
+            <button 
+              onClick={handleCreateApiKey}
+              disabled={creatingKey || !newApiKeyName.trim()}
+              style={{
+                padding: "8px 16px", fontSize: "13px", fontWeight: 600,
+                background: "var(--charcoal)", color: "var(--white)",
+                border: "none", borderRadius: "6px", cursor: "pointer",
+                opacity: creatingKey || !newApiKeyName.trim() ? 0.6 : 1,
+              }}
+            >
+              {creatingKey ? "Creating..." : "Create new key"}
+            </button>
+          </div>
+
+          {/* New Key Display (One-time) */}
+          {createdKey && (
+            <div style={{ background: "#fefce8", border: "1px solid #fef08a", borderRadius: "6px", padding: "16px", marginBottom: "20px" }}>
+              <p style={{ margin: "0 0 8px 0", fontSize: "14px", fontWeight: 600, color: "#854d0e" }}>Save your new API key</p>
+              <p style={{ margin: "0 0 12px 0", fontSize: "13px", color: "#a16207" }}>
+                Make sure to copy your new API key for <strong>{createdKey.name}</strong> now. You won&apos;t be able to see it again!
+              </p>
+              <div style={{ display: "flex", gap: "8px" }}>
+                <code style={{ flex: 1, padding: "10px", background: "#fff", border: "1px solid #fde047", borderRadius: "4px", fontSize: "14px", color: "#422006", wordBreak: "break-all" }}>
+                  {createdKey.plainKey}
+                </code>
+                <button 
+                  onClick={() => { navigator.clipboard.writeText(createdKey.plainKey); setCreatedKey(null); }}
+                  style={{ padding: "8px 12px", background: "#fde047", color: "#854d0e", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: 600, fontSize: "13px" }}
+                >
+                  Copy & Close
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Existing Keys List */}
+          {apiKeys.length > 0 ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              {apiKeys.map((key) => (
+                <div key={key.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px", border: "1px solid var(--rule)", borderRadius: "6px", background: "var(--cream)" }}>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: "14px", color: "var(--charcoal)", marginBottom: "4px" }}>{key.name}</div>
+                    <code style={{ fontSize: "12px", color: "var(--grey)", fontFamily: "monospace" }}>{key.prefix}••••••••••••••••</code>
+                  </div>
+                  <button 
+                    onClick={() => handleRevokeApiKey(key.id)}
+                    style={{ fontSize: "12px", color: "#dc2626", background: "none", border: "none", cursor: "pointer", padding: "4px 8px" }}
+                  >
+                    Revoke
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+             <div style={{ fontSize: "13px", color: "var(--grey-light)", textAlign: "center", padding: "20px 0" }}>
+              No API keys created yet.
+            </div>
+          )}
+        </div>
       </section>
 
       {/* Notifications */}
@@ -371,17 +521,6 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {/* Status message */}
-      {message && (
-        <div style={{
-          padding: "10px 16px", borderRadius: "6px", fontSize: "13px", fontFamily: "var(--font-ui)",
-          background: message.type === "ok" ? "#d1fae5" : "#fef2f2",
-          color: message.type === "ok" ? "#065f46" : "#991b1b",
-          border: `1px solid ${message.type === "ok" ? "#a7f3d0" : "#fecaca"}`,
-        }}>
-          {message.text}
-        </div>
-      )}
     </div>
   );
 }

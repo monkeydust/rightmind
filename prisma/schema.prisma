@@ -24,6 +24,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   jobs          AdvisorJob[]
+  apiKeys       ApiKey[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -69,6 +70,7 @@ model AdvisorJob {
   userId        String?  // Links job to user (nullable for migration)
   user          User?    @relation(fields: [userId], references: [id])
   challenge     String   // The user's input challenge text
+  fileName      String?  // Original filename if a file was uploaded (e.g. "business-plan.pdf")
   strategyId    String   // Maps to strategy config id (e.g. "consensus-board")
   executionMode String   @default("instant") // "instant" or "overnight"
   status        String   @default("PENDING") // PENDING | RUNNING | DONE | FAILED
@@ -76,12 +78,25 @@ model AdvisorJob {
   report        String?  // Final markdown report (null until complete)
   error         String?  // Error message if status = FAILED
   parentJobId   String?  // For all-angles: links child strategy jobs to the parent
+  webhookUrl    String?  // URL to POST to when job completes
+  webhookSecret String?  // Optional secret to HMAC sign the webhook payload
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   completedAt   DateTime?
 
   // Individual agent responses stored for debug/transparency
   agentResponses AgentResponse[]
+}
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String    // Human-readable label (e.g. "OpenClaw production")
+  keyHash     String    @unique // SHA-256 hash of the full key
+  prefix      String    // First 8 chars of the key for identification (e.g. "rm_live_a1b2c3d4")
+  lastUsedAt  DateTime?
+  createdAt   DateTime  @default(now())
 }
 
 model AgentResponse {

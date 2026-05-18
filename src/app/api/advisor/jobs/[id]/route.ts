@@ -19,6 +19,7 @@ export async function GET(
     select: {
       id: true,
       challenge: true,
+      fileName: true,
       strategyId: true,
       status: true,
       report: true,

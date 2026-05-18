@@ -614,6 +614,39 @@ export default function AdvisorPage() {
   const [allAngles, setAllAngles] = useState(false);
   const [recommendationRationale, setRecommendationRationale] = useState<{ id: string, text: string } | null>(null);
 
+  // File upload state
+  const [uploadedFile, setUploadedFile] = useState<{ name: string; data: string; mimeType: string; size: number } | null>(null);
+  const [fileDragOver, setFileDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+  const ACCEPTED_TYPES = [
+    "application/pdf",
+    "image/png", "image/jpeg", "image/webp", "image/gif",
+    "text/plain", "text/csv", "text/markdown",
+  ];
+
+  function handleFile(file: File) {
+    if (file.size > MAX_FILE_SIZE) {
+      alert(`File too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum is 10MB.`);
+      return;
+    }
+    if (!ACCEPTED_TYPES.includes(file.type)) {
+      alert(`Unsupported file type: ${file.type}. Supported: PDF, images (PNG/JPG/WebP), text, CSV.`);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setUploadedFile({
+        name: file.name,
+        data: reader.result as string,
+        mimeType: file.type,
+        size: file.size,
+      });
+    };
+    reader.readAsDataURL(file);
+  }
+
   useEffect(() => {
     fetch("/api/advisor/strategies")
       .then((r) => r.json())
@@ -665,6 +698,11 @@ export default function AdvisorPage() {
           executionMode: "instant",
           promptOverrides: Object.keys(promptOverrides).length > 0 ? promptOverrides : undefined,
           includeReasoning,
+          ...(uploadedFile ? {
+            fileData: uploadedFile.data,
+            fileName: uploadedFile.name,
+            mimeType: uploadedFile.mimeType,
+          } : {}),
         }),
       });
       const data = await res.json();
@@ -708,6 +746,110 @@ export default function AdvisorPage() {
         onRecommendation={handleRecommendation}
         placeholder={fablePlaceholder}
       />
+
+      {/* ─── File Upload ─────────────────────────────────────── */}
+      <div className="mb-24">
+        <div className="section-label">Attach a file <span style={{ fontWeight: 400, color: "var(--grey-light)", textTransform: "none", letterSpacing: 0, fontSize: "11px" }}>— optional</span></div>
+
+        {!uploadedFile ? (
+          <div
+            onDragOver={(e) => { e.preventDefault(); setFileDragOver(true); }}
+            onDragLeave={() => setFileDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setFileDragOver(false);
+              const file = e.dataTransfer.files?.[0];
+              if (file) handleFile(file);
+            }}
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              border: `2px dashed ${fileDragOver ? "var(--teal)" : "var(--rule)"}`,
+              borderRadius: "6px",
+              padding: "20px",
+              textAlign: "center",
+              cursor: "pointer",
+              transition: "all 0.15s",
+              background: fileDragOver ? "rgba(13,118,128,0.04)" : "transparent",
+            }}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.txt,.csv,.md"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleFile(file);
+                e.target.value = ""; // reset so same file can be re-selected
+              }}
+              style={{ display: "none" }}
+            />
+            <div style={{ fontSize: "22px", marginBottom: "6px" }}>📎</div>
+            <div style={{ fontSize: "13px", color: "var(--grey)" }}>
+              Drop a file here or <span style={{ color: "var(--teal)", fontWeight: 600 }}>click to browse</span>
+            </div>
+            <div style={{ fontSize: "11px", color: "var(--grey-light)", marginTop: "4px" }}>
+              PDF, images, text, CSV · Max 10MB
+            </div>
+          </div>
+        ) : (
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            padding: "10px 14px",
+            border: "1px solid var(--teal)",
+            borderRadius: "6px",
+            background: "rgba(13,118,128,0.04)",
+          }}>
+            <span style={{ fontSize: "20px" }}>
+              {uploadedFile.mimeType === "application/pdf" ? "📄" : uploadedFile.mimeType.startsWith("image/") ? "🖼️" : "📝"}
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: "13px", color: "var(--charcoal)", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {uploadedFile.name}
+              </div>
+              <div style={{ fontSize: "11px", color: "var(--grey-light)" }}>
+                {(uploadedFile.size / 1024).toFixed(0)}KB · {uploadedFile.mimeType.split("/")[1].toUpperCase()}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setUploadedFile(null)}
+              style={{
+                background: "none",
+                border: "1px solid var(--rule)",
+                borderRadius: "4px",
+                padding: "3px 10px",
+                fontSize: "11px",
+                color: "var(--grey)",
+                cursor: "pointer",
+                fontFamily: "var(--font-ui)",
+              }}
+            >
+              Remove
+            </button>
+          </div>
+        )}
+
+        {uploadedFile && (
+          <div style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "6px",
+            marginTop: "8px",
+            padding: "8px 12px",
+            background: "rgba(180,130,20,0.06)",
+            border: "1px solid rgba(180,130,20,0.2)",
+            borderRadius: "4px",
+            fontSize: "12px",
+            color: "var(--grey)",
+            lineHeight: 1.4,
+          }}>
+            <span style={{ fontSize: "13px", flexShrink: 0 }}>💡</span>
+            <span>Your file will be sent to every agent in the strategy. This increases token usage proportionally. Text-only models (DeepSeek R1) will be swapped for Gemini 3.1 Pro to enable document understanding.</span>
+          </div>
+        )}
+      </div>
 
       {/* ─── Strategy ───────────────────────────────────────── */}
       <div className="mb-24">

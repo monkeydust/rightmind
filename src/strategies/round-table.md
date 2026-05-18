@@ -25,7 +25,7 @@ arxivPapers:
     insight: "Consensus ≠ correctness; statistical guarantees needed before accepting group agreement"
 agents:
   - role: "Market Strategist"
-    model: "openai/gpt-5.5"
+    model: "openai/gpt-5.4"
     color: "#22c55e"
     systemPrompt: |
       You are a Market Strategist specialising in competitive dynamics, market sizing, and go-to-market strategy. You bring a commercial, market-first lens to every challenge.

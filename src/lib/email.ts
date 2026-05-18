@@ -98,7 +98,7 @@ export async function sendJobCompletionEmail(
     return;
   }
 
-  const baseUrl = process.env.AUTH_URL || "http://localhost:3000";
+  const baseUrl = process.env.AUTH_URL || "http://192.168.178.58:3000";
   const jobUrl = `${baseUrl}/advisor/jobs/${data.jobId}`;
   const summary = extractSummary(data.report);
 
@@ -162,6 +162,86 @@ export async function sendJobCompletionEmail(
     console.log(`[Email] Job completion email sent to ${email} for job ${data.jobId}`);
   } catch (error) {
     console.error(`[Email] Failed to send job completion email to ${email}:`, error);
+  }
+}
+
+// ─── Job Failure Email ────────────────────────────────────────────────────────
+
+interface JobFailureData {
+  jobId: string;
+  strategyName: string;
+  strategyIcon: string;
+  errorMessage: string;
+}
+
+export async function sendJobFailureEmail(
+  email: string,
+  data: JobFailureData
+) {
+  if (!resend) {
+    console.log(`[Email] Would send job failure email to ${email} for job ${data.jobId}`);
+    return;
+  }
+
+  const baseUrl = process.env.AUTH_URL || "http://192.168.178.58:3000";
+  const jobUrl = `${baseUrl}/advisor/jobs/${data.jobId}`;
+
+  try {
+    await resend.emails.send({
+      from: FROM_ADDRESS,
+      to: email,
+      subject: `⚠️ Analysis Failed — ${data.strategyName}`,
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 0;">
+          <!-- Header -->
+          <div style="margin-bottom: 28px;">
+            <span style="font-size: 20px; font-weight: 700; color: #1a1a1a; letter-spacing: -0.02em;">RightMind</span>
+          </div>
+
+          <!-- Status -->
+          <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px 16px; margin-bottom: 24px; display: flex; align-items: center;">
+            <span style="font-size: 16px; margin-right: 8px;">⚠️</span>
+            <span style="font-size: 14px; font-weight: 600; color: #991b1b;">Analysis failed to complete</span>
+          </div>
+
+          <!-- Strategy badge -->
+          <div style="margin-bottom: 20px;">
+            <span style="display: inline-block; padding: 4px 12px; background: #f0f9fa; border: 1px solid #d1e7ea; border-radius: 16px; font-size: 13px; color: #0d7680; font-weight: 600;">
+              ${data.strategyIcon} ${data.strategyName}
+            </span>
+          </div>
+
+          <!-- Error Details -->
+          <div style="margin-bottom: 28px;">
+            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #999; font-weight: 600; margin-bottom: 6px;">Error Details</div>
+            <div style="font-size: 13px; color: #7f1d1d; line-height: 1.6; padding: 12px 16px; background: #fef2f2; border: 1px solid #fca5a5; border-radius: 6px; font-family: monospace; word-break: break-all;">
+              ${escapeHtml(data.errorMessage)}
+            </div>
+            <p style="font-size: 14px; color: #444; margin-top: 16px; line-height: 1.6;">
+              This usually happens when an AI model rate limit is reached or the prompt was too large. 
+              You can check the job details or try running it again.
+            </p>
+          </div>
+
+          <!-- CTA -->
+          <a href="${jobUrl}" style="display: inline-block; padding: 12px 28px; background: #dc2626; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px;">
+            View job details →
+          </a>
+
+          <!-- Footer -->
+          <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0 16px;" />
+          <p style="color: #bbb; font-size: 11px; margin: 0; line-height: 1.5;">
+            You received this because you have email notifications enabled in your
+            <a href="${baseUrl}/advisor/settings" style="color: #999;">settings</a>.
+            RightMind — Multi-agent advisory
+          </p>
+        </div>
+      `,
+    });
+
+    console.log(`[Email] Job failure email sent to ${email} for job ${data.jobId}`);
+  } catch (error) {
+    console.error(`[Email] Failed to send job failure email to ${email}:`, error);
   }
 }
 

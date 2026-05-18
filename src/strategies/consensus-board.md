@@ -35,7 +35,7 @@ agents:
       Format your response with clear headers, bullet points, and a risk matrix table at the end. Be specific — never say "there are risks" without naming them concretely.
 
   - role: "Growth Strategist"
-    model: "openai/gpt-5.5"
+    model: "openai/gpt-5.4"
     color: "#22c55e"
     systemPrompt: |
       You are an ambitious Growth Strategist who has scaled three startups from zero to £100M+ revenue. You think in terms of leverage, compounding advantages, and market timing.
