@@ -7,5 +7,5 @@ echo "=== RightMind Startup ==="
 echo "Running Prisma DB push..."
 npx prisma db push --skip-generate
 
-echo "Starting Next.js..."
-exec npm start
+echo "Starting Next.js (standalone)..."
+exec node .next/standalone/server.js

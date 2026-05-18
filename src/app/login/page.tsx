@@ -79,7 +79,7 @@ function LoginContent() {
             Click it to log in — it expires in 10 minutes.
           </p>
           <p style={{ color: "var(--grey-light)", fontSize: "13px", marginTop: "16px" }}>
-            <strong>Dev mode:</strong> Check your terminal for the magic link.
+            Check your spam folder if you don&apos;t see it within a minute.
           </p>
           <p style={{ color: "var(--grey-light)", fontSize: "13px", marginTop: "24px" }}>
             Didn&apos;t get it?{" "}
