@@ -25,8 +25,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   ],
   callbacks: {
-    async signIn({ user }) {
-      // After sign-in, check if user has an API key
+    async signIn({ user, account }) {
+      // During the email-send phase, account is null — always allow it
+      // so the magic link actually gets sent. Only redirect after the
+      // user clicks the link and completes authentication.
+      if (!account) return true;
+
+      // After actual sign-in, check if user has an API key
       // If not, redirect them to settings on first visit
       if (user?.id) {
         const { prisma } = await import("@/lib/db");
@@ -35,7 +40,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           select: { openRouterKey: true },
         });
         if (!dbUser?.openRouterKey) {
-          // Signal to redirect — we'll handle this in the login page
           return "/advisor/settings?setup=1";
         }
       }
