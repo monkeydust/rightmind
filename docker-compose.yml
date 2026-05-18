@@ -12,6 +12,7 @@ services:
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - AUTH_SECRET=${AUTH_SECRET}
       - AUTH_URL=${AUTH_URL}
+      - AUTH_TRUST_HOST=true
       - AUTH_RESEND_KEY=${AUTH_RESEND_KEY}
     volumes:
       - sqlite_data:/app/data
