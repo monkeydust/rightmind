@@ -46,3 +46,6 @@ next-env.d.ts
 prisma/*.db
 prisma/*.db-journal
 prisma/backups/
+
+tmp/
+

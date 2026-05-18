@@ -1,9 +1,17 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 export default function SettingsPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: "48px 24px", maxWidth: "600px", margin: "0 auto" }}><p style={{ color: "var(--grey)" }}>Loading...</p></div>}>
+      <SettingsContent />
+    </Suspense>
+  );
+}
+
+function SettingsContent() {
   const [email, setEmail] = useState("");
   const [maskedKey, setMaskedKey] = useState<string | null>(null);
   const [hasKey, setHasKey] = useState(false);
