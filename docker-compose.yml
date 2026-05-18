@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:/app/data/production.db
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - AUTH_SECRET=${AUTH_SECRET}
+      - AUTH_URL=${AUTH_URL}
+      - AUTH_RESEND_KEY=${AUTH_RESEND_KEY}
+    volumes:
+      - sqlite_data:/app/data
+
+volumes:
+  sqlite_data:
