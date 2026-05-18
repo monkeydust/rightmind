@@ -25,9 +25,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   ],
   callbacks: {
-    async signIn() {
-      // Always allow sign-in. API key setup redirect is handled
-      // client-side in the advisor layout after session is established.
+    async signIn({ user }) {
+      // Seed demo jobs for new users (fire-and-forget, don't block sign-in)
+      if (user?.id) {
+        import("@/lib/seed-demo").then(({ seedDemoJobs }) => {
+          seedDemoJobs(user.id!).catch((err) =>
+            console.error("[Demo] Seed failed:", err)
+          );
+        });
+      }
       return true;
     },
     async session({ session, user }) {

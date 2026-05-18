@@ -429,8 +429,27 @@ export default function JobDetailPage() {
   const [expandedTraces, setExpandedTraces] = useState<Set<string>>(new Set());
   const [cancelling, setCancelling] = useState(false);
   const [rerunning, setRerunning] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [emailNotify, setEmailNotify] = useState(false);
   const [elapsedNow, setElapsedNow] = useState(Date.now());
+
+  async function handleDelete() {
+    if (deleting) return;
+    if (!window.confirm("Are you sure you want to delete this job? This cannot be undone.")) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/advisor/jobs/${jobId}`, { method: "DELETE" });
+      if (res.ok) {
+        router.push("/advisor/jobs");
+      } else {
+        alert("Failed to delete job.");
+        setDeleting(false);
+      }
+    } catch {
+      alert("Network error while trying to delete job.");
+      setDeleting(false);
+    }
+  }
 
   async function handleRerun() {
     if (rerunning || !job.challenge || !job.strategyId) return;
@@ -708,6 +727,28 @@ export default function JobDetailPage() {
             {rerunning ? "Starting..." : "↺ Re-run"}
           </button>
         )}
+
+        <button
+          onClick={handleDelete}
+          disabled={deleting}
+          style={{
+            marginLeft: "12px",
+            padding: "3px 12px",
+            fontSize: "11px",
+            fontWeight: 600,
+            fontFamily: "var(--font-ui)",
+            background: "none",
+            border: "1px solid var(--grey-light)",
+            borderRadius: "4px",
+            color: "var(--grey)",
+            cursor: deleting ? "wait" : "pointer",
+            opacity: deleting ? 0.5 : 1,
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+          }}
+        >
+          {deleting ? "Deleting..." : "🗑️ Delete"}
+        </button>
       </div>
 
       {/* Progress steps */}

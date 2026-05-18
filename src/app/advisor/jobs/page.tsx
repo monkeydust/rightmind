@@ -37,7 +37,7 @@ function formatDate(iso: string) {
   });
 }
 
-function JobRow({ job }: { job: JobSummary }) {
+function JobRow({ job, onDelete }: { job: JobSummary; onDelete: (id: string) => void }) {
   const st = STATUS_STYLES[job.status] || STATUS_STYLES.PENDING;
   const isAllAngles = job.strategyId === "all-angles";
   const [expanded, setExpanded] = useState(false);
@@ -85,6 +85,20 @@ function JobRow({ job }: { job: JobSummary }) {
         .catch(() => setChildrenLoaded(true));
     }
     setExpanded(!expanded);
+  }
+
+  async function handleDelete() {
+    if (!window.confirm("Are you sure you want to delete this job? This cannot be undone.")) return;
+    try {
+      const res = await fetch(`/api/advisor/jobs/${job.id}`, { method: "DELETE" });
+      if (res.ok) {
+        onDelete(job.id);
+      } else {
+        alert("Failed to delete job.");
+      }
+    } catch {
+      alert("Network error.");
+    }
   }
 
   return (
@@ -149,16 +163,32 @@ function JobRow({ job }: { job: JobSummary }) {
           {formatDate(job.createdAt)}
         </td>
         <td>
-          <Link
-            href={`/advisor/jobs/${job.id}`}
-            style={{
-              fontSize: "12px",
-              color: "var(--claret)",
-              fontWeight: 500,
-            }}
-          >
-            View →
-          </Link>
+          <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+            <Link
+              href={`/advisor/jobs/${job.id}`}
+              style={{
+                fontSize: "12px",
+                color: "var(--claret)",
+                fontWeight: 500,
+              }}
+            >
+              View →
+            </Link>
+            <button
+              onClick={handleDelete}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                fontSize: "14px",
+                color: "var(--grey-light)",
+                padding: "2px",
+              }}
+              title="Delete job"
+            >
+              🗑️
+            </button>
+          </div>
         </td>
       </tr>
 
@@ -274,7 +304,11 @@ export default function JobsPage() {
           </thead>
           <tbody>
             {jobs.map((job) => (
-              <JobRow key={job.id} job={job} />
+              <JobRow 
+                key={job.id} 
+                job={job} 
+                onDelete={(id) => setJobs(prev => prev.filter(j => j.id !== id))} 
+              />
             ))}
           </tbody>
         </table>
