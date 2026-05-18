@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   devIndicators: false,
   allowedDevOrigins: ["192.168.178.58"],
-  serverExternalPackages: ["pdf-parse"],
+  serverExternalPackages: ["pdf-parse", "resend"],
 };
 
 export default nextConfig;
