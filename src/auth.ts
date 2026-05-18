@@ -26,6 +26,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   callbacks: {
     async signIn({ user, account }) {
+      // Debug: log what we receive
+      console.log("[auth] signIn callback:", JSON.stringify({ userId: user?.id, account: account }));
+      
       // During the email-send phase, account is null — always allow it
       // so the magic link actually gets sent. Only redirect after the
       // user clicks the link and completes authentication.
