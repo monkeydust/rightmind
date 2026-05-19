@@ -233,9 +233,8 @@ function ChallengeSection({
 
   return (
     <div className="mb-24">
-      {/* Header row */}
-      <div className="flex items-center justify-between" style={{ marginBottom: "8px" }}>
-        <div className="flex items-center" style={{ gap: "10px" }}>
+      <div className="challenge-header">
+        <div className="challenge-title-area">
           <div className="section-label" style={{ marginBottom: 0 }}>Your challenge</div>
           {/* Refine button — teal pill */}
           {challenge.trim().length > 10 && refineState === "idle" && (
@@ -279,7 +278,7 @@ function ChallengeSection({
             </span>
           )}
         </div>
-        <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+        <div className="challenge-examples-area">
           {examples.map((ex) => (
             <button
               key={ex.label}

@@ -702,3 +702,36 @@ svg {
   max-width: 100%;
 }
 
+/* Challenge Header layout responsive */
+.challenge-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  gap: 12px;
+}
+
+.challenge-title-area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.challenge-examples-area {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 600px) {
+  .challenge-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .challenge-examples-area {
+    width: 100%;
+  }
+}
+
+
