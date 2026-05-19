@@ -585,3 +585,120 @@ hr {
 .prose pre { background: var(--wheat); padding: 12px 14px; border-radius: 6px; overflow-x: auto; margin: 0 0 12px; }
 .prose pre code { background: none; padding: 0; }
 .prose blockquote { border-left: 3px solid var(--rule); padding-left: 14px; color: var(--grey); margin: 0 0 12px; }
+
+/* ─── Mobile Responsiveness & Premium Styling Improvements ───────────────── */
+
+/* Masthead Navigation Mobile Fixes */
+@media (max-width: 768px) {
+  .masthead-email {
+    display: none !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .masthead {
+    padding: 10px 14px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .masthead-links {
+    gap: 12px;
+  }
+  .masthead-link {
+    font-size: 12px;
+  }
+}
+
+/* Submit Bar Responsive Adjustments */
+.submit-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.submit-details {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .submit-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .submit-details {
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: space-between;
+  }
+  .submit-bar .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Responsive Table-to-Card Layout Transformation */
+@media (max-width: 640px) {
+  table.responsive-table, 
+  table.responsive-table thead, 
+  table.responsive-table tbody, 
+  table.responsive-table th, 
+  table.responsive-table td, 
+  table.responsive-table tr {
+    display: block;
+  }
+  
+  table.responsive-table thead {
+    display: none;
+  }
+  
+  table.responsive-table tr {
+    border: 1px solid var(--rule);
+    background: var(--white);
+    padding: 10px 12px;
+    margin-bottom: 16px;
+  }
+  
+  table.responsive-table td {
+    border: none;
+    padding: 6px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px dashed var(--rule);
+  }
+  
+  table.responsive-table td:last-child {
+    border-bottom: none;
+  }
+  
+  table.responsive-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--grey);
+  }
+}
+
+/* General Layout scaling for mobile */
+@media (max-width: 480px) {
+  .page {
+    padding: 16px 12px 48px;
+  }
+  h1 {
+    font-size: 24px;
+  }
+  h2 {
+    font-size: 18px;
+  }
+}
+
+svg {
+  max-width: 100%;
+}
+

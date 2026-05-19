@@ -990,8 +990,8 @@ export default function AdvisorPage() {
 
       {/* ─── Submit ─────────────────────────────────────────── */}
       <div style={{ borderTop: "1px solid var(--rule)", paddingTop: "16px" }}>
-        <div className="flex items-center justify-between">
-          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+        <div className="submit-bar">
+          <div className="submit-details">
             {allAngles ? (
               <div style={{ fontSize: "14px", color: "var(--grey)" }}>
                 <strong style={{ color: "var(--black)" }}>🔮 All Angles</strong>

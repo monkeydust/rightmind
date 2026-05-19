@@ -39,7 +39,7 @@ export default async function AdvisorLayout({
           <Link href="/advisor/settings" className="masthead-link">Settings</Link>
           {session?.user && (
             <>
-              <span style={{ fontSize: "12px", color: "var(--grey)", fontFamily: "var(--font-ui)" }}>
+              <span className="masthead-email" style={{ fontSize: "12px", color: "var(--grey)", fontFamily: "var(--font-ui)" }}>
                 {session.user.email}
               </span>
               <SignOutButton />

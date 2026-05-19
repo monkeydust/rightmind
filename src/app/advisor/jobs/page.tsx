@@ -104,7 +104,7 @@ function JobRow({ job, onDelete }: { job: JobSummary; onDelete: (id: string) => 
   return (
     <>
       <tr>
-        <td>
+        <td data-label="Challenge">
           <div className="flex items-center" style={{ gap: "6px" }}>
             {isAllAngles && (
               <button
@@ -136,11 +136,11 @@ function JobRow({ job, onDelete }: { job: JobSummary; onDelete: (id: string) => 
             </span>
           </div>
         </td>
-        <td style={{ color: "var(--grey)", fontSize: "13px", whiteSpace: "nowrap" }}>
+        <td data-label="Strategy" style={{ color: "var(--grey)", fontSize: "13px", whiteSpace: "nowrap" }}>
           <span style={{ marginRight: "4px" }}>{STRATEGY_ICONS[job.strategyId] || ""}</span>
           {job.strategyId}
         </td>
-        <td>
+        <td data-label="Status">
           <span
             style={{
               fontSize: "11px",
@@ -154,6 +154,7 @@ function JobRow({ job, onDelete }: { job: JobSummary; onDelete: (id: string) => 
           </span>
         </td>
         <td
+          data-label="Created"
           style={{
             fontSize: "12px",
             color: "var(--grey-light)",
@@ -162,7 +163,7 @@ function JobRow({ job, onDelete }: { job: JobSummary; onDelete: (id: string) => 
         >
           {formatDate(job.createdAt)}
         </td>
-        <td>
+        <td data-label="Actions">
           <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
             <Link
               href={`/advisor/jobs/${job.id}`}
@@ -213,17 +214,17 @@ function JobRow({ job, onDelete }: { job: JobSummary; onDelete: (id: string) => 
             children.map((child) => {
               const cst = STATUS_STYLES[child.status] || STATUS_STYLES.PENDING;
               return (
-                <tr key={child.id} style={{ background: "rgba(0,0,0,0.015)" }}>
-                  <td style={{ paddingLeft: "32px" }}>
+                 <tr key={child.id} style={{ background: "rgba(0,0,0,0.015)" }}>
+                  <td data-label="Challenge" style={{ paddingLeft: "32px" }}>
                     <span style={{ fontSize: "13px", color: "var(--grey)" }}>
                       └ {STRATEGY_ICONS[child.strategyId] || ""}{" "}
                       {child.strategyId}
                     </span>
                   </td>
-                  <td style={{ color: "var(--grey-light)", fontSize: "12px" }}>
+                  <td data-label="Strategy" style={{ color: "var(--grey-light)", fontSize: "12px" }}>
                     child
                   </td>
-                  <td>
+                  <td data-label="Status">
                     <span style={{
                       fontSize: "11px", fontWeight: 600, textTransform: "uppercase",
                       letterSpacing: "0.05em", color: cst.color,
@@ -231,13 +232,13 @@ function JobRow({ job, onDelete }: { job: JobSummary; onDelete: (id: string) => 
                       {cst.label}
                     </span>
                   </td>
-                  <td style={{
+                  <td data-label="Created" style={{
                     fontSize: "12px", color: "var(--grey-light)",
                     fontFamily: "'Menlo','Consolas',monospace",
                   }}>
                     {formatDate(child.createdAt)}
                   </td>
-                  <td>
+                  <td data-label="Actions">
                     <Link
                       href={`/advisor/jobs/${child.id}`}
                       style={{ fontSize: "12px", color: "var(--grey-light)", fontWeight: 500 }}
@@ -292,7 +293,7 @@ export default function JobsPage() {
           </Link>
         </div>
       ) : (
-        <table>
+        <table className="responsive-table">
           <thead>
             <tr>
               <th>Challenge</th>

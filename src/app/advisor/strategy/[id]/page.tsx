@@ -133,7 +133,7 @@ export default function StrategyDetailPage() {
       {/* Agents table */}
       <div className="mb-24">
         <div className="section-label">Agents &amp; models</div>
-        <table>
+        <table className="responsive-table">
           <thead>
             <tr>
               <th>Role</th>
@@ -146,30 +146,30 @@ export default function StrategyDetailPage() {
           <tbody>
             {s.agents.map((a) => (
               <tr key={a.role}>
-                <td>
+                <td data-label="Role">
                   <span className="flex items-center gap-8">
                     <span style={{ width: "6px", height: "6px", background: a.color, display: "inline-block" }} />
                     <strong>{a.role}</strong>
                   </span>
                 </td>
-                <td style={{ color: "var(--grey)" }}>{provider(a.model)}</td>
-                <td style={{ fontFamily: "'Menlo','Consolas',monospace", fontSize: "13px" }}>{modelShort(a.model)}</td>
-                {s.agents.some((ag) => ag.phase) && <td style={{ color: "var(--grey)" }}>{a.phase || "—"}</td>}
-                <td></td>
+                <td data-label="Provider" style={{ color: "var(--grey)" }}>{provider(a.model)}</td>
+                <td data-label="Model" style={{ fontFamily: "'Menlo','Consolas',monospace", fontSize: "13px" }}>{modelShort(a.model)}</td>
+                {s.agents.some((ag) => ag.phase) && <td data-label="Phase" style={{ color: "var(--grey)" }}>{a.phase || "—"}</td>}
+                <td data-label=""></td>
               </tr>
             ))}
             <tr>
-              <td>
+              <td data-label="Role">
                 <span className="flex items-center gap-8">
                   <span style={{ width: "6px", height: "6px", background: s.judge.color, display: "inline-block" }} />
                   <strong>{s.judge.role}</strong>
                   <span className="topic-tag" style={{ marginLeft: "4px", fontSize: "9px" }}>JUDGE</span>
                 </span>
               </td>
-              <td style={{ color: "var(--grey)" }}>{provider(s.judge.model)}</td>
-              <td style={{ fontFamily: "'Menlo','Consolas',monospace", fontSize: "13px" }}>{modelShort(s.judge.model)}</td>
-              {s.agents.some((a) => a.phase) && <td style={{ color: "var(--grey)" }}>synthesis</td>}
-              <td></td>
+              <td data-label="Provider" style={{ color: "var(--grey)" }}>{provider(s.judge.model)}</td>
+              <td data-label="Model" style={{ fontFamily: "'Menlo','Consolas',monospace", fontSize: "13px" }}>{modelShort(s.judge.model)}</td>
+              {s.agents.some((a) => a.phase) && <td data-label="Phase" style={{ color: "var(--grey)" }}>synthesis</td>}
+              <td data-label=""></td>
             </tr>
           </tbody>
         </table>
