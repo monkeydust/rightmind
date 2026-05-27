@@ -108,6 +108,8 @@ export async function orchestrateMultiRoundConsensus({
   try {
     // Track each agent's latest output per round
     const roundOutputs: Map<string, string>[] = [];
+    // Track per-agent confidence scores (ConfMAD: confidence-modulated belief updates)
+    const confidenceScores: Map<string, number>[] = [];
     const allRoundData: string[] = [];
     let consensusReached = false;
     let roundsCompleted = 0;
@@ -117,6 +119,7 @@ export async function orchestrateMultiRoundConsensus({
       if (isJobCancelled(jobId)) throw new Error("Job cancelled by user");
       const stepOffset = (round - 1) * agents.length;
       const roundMap = new Map<string, string>();
+      const confidenceMap = new Map<string, number>();
       const confidences: number[] = [];
 
       const agentPromises = agents.map(async (agent, idx) => {
@@ -133,14 +136,19 @@ export async function orchestrateMultiRoundConsensus({
           // Round 1: independent analysis (no JSON structure required)
           userMsg = challenge;
         } else {
-          // Round 2+: show all other agents' previous outputs
+          // Round 2+: show all other agents' previous outputs WITH confidence scores
           const prevRound = roundOutputs[round - 2]; // 0-indexed
+          const prevConfidences = confidenceScores[round - 2];
           const otherOutputs = agents
             .filter((a) => a.role !== agent.role)
-            .map((a) => `### ${a.role}\n\n${prevRound.get(a.role) || "(no response)"}`)
+            .map((a) => {
+              const conf = prevConfidences?.get(a.role);
+              const confLabel = conf != null ? ` (confidence: ${conf.toFixed(2)})` : "";
+              return `### ${a.role}${confLabel}\n\n${prevRound.get(a.role) || "(no response)"}`;
+            })
             .join("\n\n---\n\n");
 
-          userMsg = `# Original Challenge\n\n${challenge}\n\n---\n\n# Other Agents' Analyses (Round ${round - 1})\n\n${otherOutputs}\n\n---\n\nRespond with your structured agree/disagree assessment as valid JSON.`;
+          userMsg = `# Original Challenge\n\n${challenge}\n\n---\n\n# Other Agents' Analyses (Round ${round - 1})\n\nNote: Each agent's confidence score (0.0–1.0) is shown next to their name. Higher confidence means they are more certain of their position. Weight their arguments accordingly — a high-confidence disagreement deserves more attention than a low-confidence one.\n\n${otherOutputs}\n\n---\n\nRespond with your structured agree/disagree assessment as valid JSON.`;
         }
 
         const response = await callModel(
@@ -176,11 +184,14 @@ export async function orchestrateMultiRoundConsensus({
         if (round > 1) {
           try {
             const parsed: RoundTableResponse = JSON.parse(response.content);
-            confidences.push(parsed.confidence ?? 0.5);
+            const conf = parsed.confidence ?? 0.5;
+            confidences.push(conf);
+            confidenceMap.set(agent.role, conf);
             roundMap.set(agent.role, parsed.revised_answer || response.content);
           } catch {
             // If JSON parse fails, just use the raw text
             confidences.push(0.5);
+            confidenceMap.set(agent.role, 0.5);
             roundMap.set(agent.role, response.content);
           }
         } else {
@@ -197,6 +208,7 @@ export async function orchestrateMultiRoundConsensus({
 
       const roundResults = await Promise.all(agentPromises);
       roundOutputs.push(roundMap);
+      confidenceScores.push(confidenceMap);
       roundsCompleted = round;
 
       // Format for judge
