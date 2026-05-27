@@ -74,28 +74,137 @@ interface JobCompletionData {
 }
 
 /**
- * Extracts a summary from the full report — takes the first ~500 characters
- * up to a sentence boundary.
+ * Structured summary extracted from a report, with separate fields
+ * for verdict/score and narrative text.
  */
-function extractSummary(report: string): string {
-  // Strip markdown headings for cleaner preview
-  const plain = report
-    .replace(/^#{1,4}\s+.*$/gm, "")
-    .replace(/\*\*/g, "")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+interface ReportSummary {
+  /** A short verdict line, e.g. "MODIFY · 0.76 alignment" or "Robustness: 8/10" */
+  verdict: string | null;
+  /** Strategy-level verdicts for All Angles */
+  strategyVerdicts: { icon: string; name: string; verdict: string; oneLiner: string }[];
+  /** The opening narrative paragraphs of the report — HTML-safe */
+  paragraphs: string[];
+}
 
-  const cutoff = 500;
-  if (plain.length <= cutoff) return plain;
+/**
+ * Extracts a structured summary from the full report.
+ * Handles both All Angles JSON and single-strategy markdown.
+ */
+function extractSummary(report: string): ReportSummary {
+  const result: ReportSummary = { verdict: null, strategyVerdicts: [], paragraphs: [] };
 
-  // Find the last sentence boundary before cutoff
-  const truncated = plain.slice(0, cutoff);
-  const lastPeriod = truncated.lastIndexOf(".");
-  const lastExcl = truncated.lastIndexOf("!");
-  const lastQ = truncated.lastIndexOf("?");
-  const boundary = Math.max(lastPeriod, lastExcl, lastQ);
+  // Try parsing as All Angles JSON
+  try {
+    const parsed = JSON.parse(report);
+    if (parsed._type === "all-angles" && parsed.metaSynthesis) {
+      const meta = parsed.metaSynthesis;
 
-  return boundary > 100 ? truncated.slice(0, boundary + 1) : truncated + "…";
+      // Verdict line
+      const verdict = meta.meta_verdict || "—";
+      const score = meta.alignment_score != null
+        ? `${Math.round(meta.alignment_score * 100)}% alignment`
+        : "";
+      const label = meta.alignment_label || "";
+      result.verdict = `${verdict}${score ? ` · ${label} (${score})` : ""}`;
+
+      // Strategy verdicts
+      if (Array.isArray(meta.strategy_verdicts)) {
+        result.strategyVerdicts = meta.strategy_verdicts.map((sv: Record<string, string>) => ({
+          icon: sv.icon || "",
+          name: sv.strategy_name || sv.strategy_id || "",
+          verdict: sv.verdict || "—",
+          oneLiner: sv.one_liner || "",
+        }));
+      }
+
+      // Narrative — meta_recommendation is the main prose output
+      if (meta.meta_recommendation) {
+        const paras = meta.meta_recommendation
+          .split(/\n{2,}/)
+          .map((p: string) => p.trim())
+          .filter((p: string) => p.length > 0);
+        result.paragraphs = paras.slice(0, 3);
+      } else if (meta.meta_verdict_rationale) {
+        result.paragraphs = [meta.meta_verdict_rationale];
+      }
+
+      return result;
+    }
+  } catch {
+    // Not JSON — treat as markdown
+  }
+
+  // Markdown report — extract the first heading and opening paragraphs
+  const lines = report.split("\n");
+  let firstHeading: string | null = null;
+  const contentLines: string[] = [];
+  let paraCount = 0;
+
+  for (const line of lines) {
+    // Capture first heading as the verdict/score line
+    if (!firstHeading && /^#{1,3}\s+.+/.test(line)) {
+      firstHeading = line.replace(/^#{1,3}\s+/, "").replace(/\*\*/g, "");
+      continue;
+    }
+
+    // Skip subsequent headings
+    if (/^#{1,4}\s+/.test(line)) {
+      // If we already have content, this heading starts a new section — stop
+      if (contentLines.length > 0) break;
+      continue;
+    }
+
+    const trimmed = line.trim();
+
+    // Empty line = paragraph boundary
+    if (trimmed === "") {
+      if (contentLines.length > 0) {
+        paraCount++;
+        if (paraCount >= 3) break;
+        contentLines.push("");
+      }
+      continue;
+    }
+
+    // Strip bold markers for cleaner display
+    contentLines.push(trimmed.replace(/\*\*/g, ""));
+  }
+
+  if (firstHeading) {
+    result.verdict = firstHeading;
+  }
+
+  // Split collected content into paragraphs
+  const joined = contentLines.join("\n").trim();
+  if (joined) {
+    result.paragraphs = joined
+      .split(/\n{2,}/)
+      .map(p => p.replace(/\n/g, " ").trim())
+      .filter(p => p.length > 0)
+      .slice(0, 3);
+  }
+
+  return result;
+}
+
+/**
+ * Renders a verdict badge with appropriate colour.
+ */
+function verdictBadgeHtml(verdict: string): string {
+  const v = verdict.toUpperCase();
+  let bg = "#f0f9fa"; let border = "#d1e7ea"; let color = "#0d7680"; // default teal
+
+  if (v.includes("GO") && !v.includes("NO-GO")) {
+    bg = "#d1fae5"; border = "#a7f3d0"; color = "#065f46";
+  } else if (v.includes("NO-GO")) {
+    bg = "#fef2f2"; border = "#fecaca"; color = "#991b1b";
+  } else if (v.includes("MODIFY")) {
+    bg = "#fef9c3"; border = "#fde68a"; color = "#92400e";
+  } else if (v.includes("HOLD")) {
+    bg = "#ede9fe"; border = "#c4b5fd"; color = "#5b21b6";
+  }
+
+  return `<span style="display: inline-block; padding: 4px 14px; background: ${bg}; border: 1px solid ${border}; border-radius: 16px; font-size: 14px; color: ${color}; font-weight: 700; letter-spacing: 0.03em;">${escapeHtml(verdict)}</span>`;
 }
 
 export async function sendJobCompletionEmail(
@@ -110,6 +219,50 @@ export async function sendJobCompletionEmail(
   const baseUrl = process.env.AUTH_URL || "http://192.168.178.58:3000";
   const jobUrl = `${baseUrl}/advisor/jobs/${data.jobId}`;
   const summary = extractSummary(data.report);
+
+  // Build verdict section
+  let verdictHtml = "";
+  if (summary.verdict) {
+    verdictHtml = `
+      <div style="margin-bottom: 20px;">
+        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #999; font-weight: 600; margin-bottom: 8px;">Verdict</div>
+        ${verdictBadgeHtml(summary.verdict)}
+      </div>`;
+  }
+
+  // Build strategy verdicts table (All Angles only)
+  let strategyVerdictsHtml = "";
+  if (summary.strategyVerdicts.length > 0) {
+    const rows = summary.strategyVerdicts.map(sv => `
+      <tr>
+        <td style="padding: 6px 8px; font-size: 13px; border-bottom: 1px solid #f0f0f0;">${sv.icon} ${escapeHtml(sv.name)}</td>
+        <td style="padding: 6px 8px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid #f0f0f0; color: ${sv.verdict === "GO" ? "#065f46" : sv.verdict === "NO-GO" ? "#991b1b" : sv.verdict === "MODIFY" ? "#92400e" : "#5b21b6"};">${escapeHtml(sv.verdict)}</td>
+        <td style="padding: 6px 8px; font-size: 12px; color: #666; line-height: 1.4; border-bottom: 1px solid #f0f0f0;">${escapeHtml(sv.oneLiner.length > 120 ? sv.oneLiner.slice(0, 117) + "…" : sv.oneLiner)}</td>
+      </tr>`).join("");
+
+    strategyVerdictsHtml = `
+      <div style="margin-bottom: 24px;">
+        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #999; font-weight: 600; margin-bottom: 8px;">Strategy verdicts</div>
+        <table style="width: 100%; border-collapse: collapse; border: 1px solid #eee; border-radius: 6px; overflow: hidden;">
+          ${rows}
+        </table>
+      </div>`;
+  }
+
+  // Build narrative paragraphs
+  let narrativeHtml = "";
+  if (summary.paragraphs.length > 0) {
+    const paras = summary.paragraphs
+      .map(p => `<p style="margin: 0 0 12px; font-size: 14px; color: #333; line-height: 1.7;">${escapeHtml(p)}</p>`)
+      .join("");
+    narrativeHtml = `
+      <div style="margin-bottom: 24px;">
+        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #999; font-weight: 600; margin-bottom: 8px;">Summary</div>
+        <div style="padding: 16px; background: #fafafa; border: 1px solid #eee; border-radius: 6px;">
+          ${paras}
+        </div>
+      </div>`;
+  }
 
   try {
     await resend.emails.send({
@@ -144,13 +297,14 @@ export async function sendJobCompletionEmail(
             </div>
           </div>
 
-          <!-- Summary -->
-          <div style="margin-bottom: 28px;">
-            <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #999; font-weight: 600; margin-bottom: 6px;">Summary</div>
-            <div style="font-size: 14px; color: #333; line-height: 1.7;">
-              ${escapeHtml(summary)}
-            </div>
-          </div>
+          <!-- Verdict -->
+          ${verdictHtml}
+
+          <!-- Strategy Verdicts (All Angles) -->
+          ${strategyVerdictsHtml}
+
+          <!-- Narrative Summary -->
+          ${narrativeHtml}
 
           <!-- CTA -->
           <a href="${jobUrl}" style="display: inline-block; padding: 12px 28px; background: #0d7680; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px;">
