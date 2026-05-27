@@ -4,6 +4,7 @@ services:
   app:
     build: .
     restart: unless-stopped
+    shm_size: '512m'
     ports:
       - "3001:3000"
     environment:

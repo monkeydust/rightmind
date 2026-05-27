@@ -1,5 +1,15 @@
 FROM node:20-bookworm
 
+# Install Chromium for server-side PDF generation (puppeteer-core)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    chromium \
+    fonts-liberation \
+    fonts-noto-color-emoji \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+
 # Set working directory
 WORKDIR /app
 

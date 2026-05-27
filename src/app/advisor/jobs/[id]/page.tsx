@@ -385,6 +385,32 @@ Please review this analysis. I'd like your perspective on:
     fontWeight: 600,
   };
 
+  async function downloadPdf() {
+    setCopyState("loading");
+    try {
+      const res = await fetch(`/api/advisor/jobs/${jobId}/pdf`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Download failed" }));
+        alert(err.error || "Failed to download PDF");
+        setCopyState("idle");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = res.headers.get("Content-Disposition")?.match(/filename="(.+)"/)?.[1] || "rightmind-report.pdf";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setCopyState("idle");
+    } catch {
+      alert("Network error while downloading PDF.");
+      setCopyState("idle");
+    }
+  }
+
   return (
     <div style={{
       display: "flex",
@@ -401,6 +427,16 @@ Please review this analysis. I'd like your perspective on:
         title="Copy with your original challenge + discussion prompts — ready to paste into ChatGPT, Claude, or Gemini"
       >
         {copyState === "copied-discussion" ? "✓ Copied" : "💬 Copy for discussion"}
+      </button>
+      <button
+        onClick={downloadPdf}
+        disabled={copyState === "loading"}
+        style={copyState === "loading" ? { ...btnStyle, opacity: 0.5, cursor: "wait" } : btnStyle}
+        onMouseEnter={(e) => { if (copyState !== "loading") { e.currentTarget.style.borderColor = "var(--charcoal)"; e.currentTarget.style.color = "var(--charcoal)"; } }}
+        onMouseLeave={(e) => { if (copyState !== "loading") { e.currentTarget.style.borderColor = "var(--rule)"; e.currentTarget.style.color = "var(--grey)"; } }}
+        title="Download a PDF of this analysis"
+      >
+        {copyState === "loading" ? "⏳ Generating…" : "📄 Download PDF"}
       </button>
       {showReasoning && (
         <span style={{ fontSize: "10px", color: "var(--teal)", fontStyle: "italic" }}>
