@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
@@ -468,6 +468,7 @@ export default function JobDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [emailNotify, setEmailNotify] = useState(false);
   const [elapsedNow, setElapsedNow] = useState(Date.now());
+  const [expandedDimensions, setExpandedDimensions] = useState<Set<number>>(new Set());
 
   async function handleDelete() {
     if (deleting) return;
@@ -1136,41 +1137,95 @@ export default function JobDetailPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {meta.key_dimensions.map((dim: KeyDimension, idx: number) => (
-                          <tr key={idx} style={{ borderBottom: "1px solid var(--rule)" }}>
-                            <td style={{ padding: "8px 12px", fontWeight: 600, color: "var(--charcoal)", lineHeight: 1.4 }}>
-                              {dim.question}
-                            </td>
-                            {(["consensus-board", "deep-dive", "stress-tester", "round-table"] as const).map((sid) => {
-                              const pos = dim.positions?.[sid];
-                              const stance = pos?.stance || "—";
-                              const stanceColor = stance === "for" ? "var(--teal)" : stance === "against" ? "var(--claret)" : stance === "modify" ? "#b8860b" : stance === "defer" ? "#6366f1" : "var(--grey-light)";
-                              const stanceBg = stance === "for" ? "rgba(0,128,128,0.08)" : stance === "against" ? "rgba(180,50,50,0.08)" : stance === "modify" ? "rgba(184,134,11,0.08)" : stance === "defer" ? "rgba(99,102,241,0.08)" : "transparent";
-                              return (
-                                <td key={sid} style={{ padding: "6px 8px", textAlign: "center" }} title={pos?.reason || ""}>
-                                  <span style={{
-                                    display: "inline-block",
-                                    padding: "2px 8px",
-                                    borderRadius: "10px",
-                                    fontSize: "10px",
-                                    fontWeight: 700,
-                                    textTransform: "uppercase",
-                                    letterSpacing: "0.04em",
-                                    color: stanceColor,
-                                    background: stanceBg,
-                                  }}>
-                                    {stance}
+                        {meta.key_dimensions.map((dim: KeyDimension, idx: number) => {
+                          const isExpanded = expandedDimensions.has(idx);
+                          const STRATEGY_IDS = ["consensus-board", "deep-dive", "stress-tester", "round-table"] as const;
+                          const STRATEGY_SHORT: Record<string, string> = { "consensus-board": "🏛️ Board", "deep-dive": "🔬 Dive", "stress-tester": "⚔️ Stress", "round-table": "🤝 Table" };
+                          return (
+                            <React.Fragment key={idx}>
+                              <tr
+                                style={{ borderBottom: isExpanded ? "none" : "1px solid var(--rule)", cursor: "pointer" }}
+                                onClick={() => {
+                                  setExpandedDimensions(prev => {
+                                    const next = new Set(prev);
+                                    if (next.has(idx)) next.delete(idx); else next.add(idx);
+                                    return next;
+                                  });
+                                }}
+                              >
+                                <td style={{ padding: "8px 12px", fontWeight: 600, color: "var(--charcoal)", lineHeight: 1.4 }}>
+                                  <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+                                    <span style={{ fontSize: "9px", color: "var(--grey-light)", transition: "transform 0.15s", transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)" }}>▶</span>
+                                    {dim.question}
                                   </span>
                                 </td>
-                              );
-                            })}
-                          </tr>
-                        ))}
+                                {STRATEGY_IDS.map((sid) => {
+                                  const pos = dim.positions?.[sid];
+                                  const stance = pos?.stance || "—";
+                                  const stanceColor = stance === "for" ? "var(--teal)" : stance === "against" ? "var(--claret)" : stance === "modify" ? "#b8860b" : stance === "defer" ? "#6366f1" : "var(--grey-light)";
+                                  const stanceBg = stance === "for" ? "rgba(0,128,128,0.08)" : stance === "against" ? "rgba(180,50,50,0.08)" : stance === "modify" ? "rgba(184,134,11,0.08)" : stance === "defer" ? "rgba(99,102,241,0.08)" : "transparent";
+                                  return (
+                                    <td key={sid} style={{ padding: "6px 8px", textAlign: "center" }} title={pos?.reason || ""}>
+                                      <span style={{
+                                        display: "inline-block",
+                                        padding: "2px 8px",
+                                        borderRadius: "10px",
+                                        fontSize: "10px",
+                                        fontWeight: 700,
+                                        textTransform: "uppercase",
+                                        letterSpacing: "0.04em",
+                                        color: stanceColor,
+                                        background: stanceBg,
+                                      }}>
+                                        {stance}
+                                      </span>
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                              {isExpanded && (
+                                <tr style={{ borderBottom: "1px solid var(--rule)" }}>
+                                  <td colSpan={5} style={{ padding: "0 12px 12px" }}>
+                                    <div style={{
+                                      display: "grid",
+                                      gridTemplateColumns: "1fr 1fr",
+                                      gap: "6px",
+                                      marginTop: "4px",
+                                    }}>
+                                      {STRATEGY_IDS.map((sid) => {
+                                        const pos = dim.positions?.[sid];
+                                        const stance = pos?.stance || "—";
+                                        const reason = pos?.reason;
+                                        if (!reason) return null;
+                                        const stanceColor = stance === "for" ? "var(--teal)" : stance === "against" ? "var(--claret)" : stance === "modify" ? "#b8860b" : stance === "defer" ? "#6366f1" : "var(--grey-light)";
+                                        return (
+                                          <div key={sid} style={{
+                                            padding: "8px 10px",
+                                            background: "var(--off-white, #fafafa)",
+                                            border: "1px solid var(--rule)",
+                                            borderRadius: "4px",
+                                          }}>
+                                            <div style={{ fontSize: "10px", fontWeight: 700, color: stanceColor, textTransform: "uppercase", marginBottom: "3px" }}>
+                                              {STRATEGY_SHORT[sid]} · {stance}
+                                            </div>
+                                            <div style={{ fontSize: "11px", color: "var(--grey)", lineHeight: 1.5 }}>
+                                              {reason}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
                   <p style={{ fontSize: "11px", color: "var(--grey-light)", marginTop: "6px", fontStyle: "italic" }}>
-                    Hover over a cell to see the strategy&apos;s reasoning
+                    Tap a row to see each strategy&apos;s reasoning
                   </p>
                 </div>
               )}

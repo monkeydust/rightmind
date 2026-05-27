@@ -25,6 +25,7 @@
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
     "resend": "^6.12.2",
+    "ssh2": "^1.17.0",
     "uuid": "^14.0.0"
   },
   "devDependencies": {
