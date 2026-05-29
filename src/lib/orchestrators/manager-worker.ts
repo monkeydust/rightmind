@@ -102,14 +102,39 @@ export async function orchestrateManagerWorker({
     await updateProgress(jobId, "decompose", steps);
 
     const managerPrompt = getPrompt(strategy, managerRole, promptOverrides);
-    const managerResponse = await callModel(
-      resolveAgentModel(getModel(strategy, managerRole), file),
-      [
-        { role: "system", content: managerPrompt },
-        { role: "user", content: await buildUserContent(challenge, file) },
-      ],
-      { json: true, temperature: 0.4, ...reasoningOpts(includeReasoning) }
-    );
+    const managerModel = resolveAgentModel(getModel(strategy, managerRole), file);
+    const managerMessages = [
+      { role: "system" as const, content: managerPrompt },
+      { role: "user" as const, content: await buildUserContent(challenge, file) },
+    ];
+
+    // Retry loop: if the model returns truncated/invalid JSON, try once more
+    let managerResponse;
+    let decomposition: ManagerDecomposition | undefined;
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      managerResponse = await callModel(
+        managerModel,
+        managerMessages,
+        { json: true, temperature: 0.4, max_tokens: 8192, ...reasoningOpts(includeReasoning) }
+      );
+
+      try {
+        decomposition = JSON.parse(managerResponse.content);
+        break; // Success — exit retry loop
+      } catch {
+        console.warn(`[Job ${jobId}] Manager JSON parse failed (attempt ${attempt + 1}/2). Response length: ${managerResponse.content.length} chars`);
+        if (attempt === 1) {
+          throw new Error(
+            `Manager returned invalid JSON after 2 attempts. Response length: ${managerResponse.content.length} chars`
+          );
+        }
+      }
+    }
+
+    if (!decomposition) {
+      throw new Error("Manager decomposition failed unexpectedly.");
+    }
 
     // Save the manager response
     await prisma.agentResponse.create({
@@ -120,22 +145,12 @@ export async function orchestrateManagerWorker({
         round: 1,
         phase: "decompose",
         prompt: managerPrompt,
-        response: managerResponse.content,
-        reasoning: managerResponse.reasoning || null,
-        tokens: managerResponse.usage.total_tokens,
-        durationMs: managerResponse._durationMs || 0,
+        response: managerResponse!.content,
+        reasoning: managerResponse!.reasoning || null,
+        tokens: managerResponse!.usage.total_tokens,
+        durationMs: managerResponse!._durationMs || 0,
       },
     });
-
-    // Parse the decomposition
-    let decomposition: ManagerDecomposition;
-    try {
-      decomposition = JSON.parse(managerResponse.content);
-    } catch {
-      throw new Error(
-        `Manager returned invalid JSON. Raw response:\n${managerResponse.content}`
-      );
-    }
 
     if (!decomposition.sub_tasks || decomposition.sub_tasks.length === 0) {
       throw new Error("Manager produced zero sub-tasks.");
