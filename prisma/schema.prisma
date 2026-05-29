@@ -86,6 +86,7 @@ model AdvisorJob {
 
   // Individual agent responses stored for debug/transparency
   agentResponses AgentResponse[]
+  followUps      JobFollowUp[]
 }
 
 model ApiKey {
@@ -113,5 +114,18 @@ model AgentResponse {
   tokens      Int      @default(0) // Total tokens used
   durationMs  Int      @default(0) // How long the call took
   createdAt   DateTime @default(now())
+}
+
+model JobFollowUp {
+  id         String     @id @default(uuid())
+  jobId      String
+  job        AdvisorJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  turnNumber Int
+  prompt     String     // The user's follow-up question
+  response   String     // The model's response (markdown)
+  model      String     // Which model was used
+  tokens     Int        @default(0)
+  durationMs Int        @default(0)
+  createdAt  DateTime   @default(now())
 }
 

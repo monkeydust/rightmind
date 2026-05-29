@@ -21,6 +21,17 @@ interface Progress {
   steps?: AgentStep[];
 }
 
+interface FollowUp {
+  id: string;
+  turnNumber: number;
+  prompt: string;
+  response: string;
+  model: string;
+  tokens: number;
+  durationMs: number;
+  createdAt: string;
+}
+
 interface JobData {
   status: string;
   progress: Progress;
@@ -29,6 +40,7 @@ interface JobData {
   strategyId?: string;
   report?: string;
   error?: string;
+  followUps?: FollowUp[];
 }
 
 interface ReasoningTrace {
@@ -470,6 +482,11 @@ export default function JobDetailPage() {
   const [elapsedNow, setElapsedNow] = useState(Date.now());
   const [expandedDimensions, setExpandedDimensions] = useState<Set<number>>(new Set());
 
+  // Follow-up state
+  const [followUpInput, setFollowUpInput] = useState("");
+  const [followUpLoading, setFollowUpLoading] = useState(false);
+  const [followUpError, setFollowUpError] = useState<string | null>(null);
+
   async function handleDelete() {
     if (deleting) return;
     if (!window.confirm("Are you sure you want to delete this job? This cannot be undone.")) return;
@@ -553,6 +570,15 @@ export default function JobDetailPage() {
         report: data.report,
       }));
       es.close();
+      // Fetch full job data including followUps
+      fetch(`/api/advisor/jobs/${jobId}`)
+        .then((r) => r.json())
+        .then((full) => {
+          if (full.followUps) {
+            setJob((prev) => ({ ...prev, followUps: full.followUps }));
+          }
+        })
+        .catch(() => {});
     });
 
     es.addEventListener("failed", (e) => {
@@ -581,6 +607,22 @@ export default function JobDetailPage() {
       .then((data) => { if (data?.emailOnComplete) setEmailNotify(true); })
       .catch(() => {});
   }, []);
+
+  // Fetch follow-ups when job is done (handles page reload with completed job)
+  useEffect(() => {
+    if (job.status === "DONE" && !job.followUps) {
+      fetch(`/api/advisor/jobs/${jobId}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.followUps) {
+            setJob((prev) => ({ ...prev, followUps: data.followUps }));
+          } else {
+            setJob((prev) => ({ ...prev, followUps: [] }));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [job.status, jobId]);
 
   // Tick the elapsed timer every second while job is running
   useEffect(() => {
@@ -1341,6 +1383,130 @@ export default function JobDetailPage() {
           </div>
         );
       })()}
+
+      {/* Follow-up conversation */}
+      {job.status === "DONE" && job.report && (
+        <div style={{ marginTop: "32px", borderTop: "1px solid var(--rule)", paddingTop: "24px" }}>
+          {/* Existing follow-ups */}
+          {(job.followUps || []).length > 0 && (
+            <div style={{ marginBottom: "24px" }}>
+              <div className="section-label">Follow-up conversation</div>
+              {(job.followUps || []).map((fu) => (
+                <div key={fu.id} style={{ marginBottom: "20px" }}>
+                  {/* User's question */}
+                  <div style={{
+                    display: "flex", gap: "10px", marginBottom: "10px", alignItems: "flex-start",
+                  }}>
+                    <div style={{
+                      flexShrink: 0, width: "24px", height: "24px", borderRadius: "50%",
+                      background: "var(--claret)", color: "#fff", display: "flex",
+                      alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: 700,
+                      marginTop: "2px",
+                    }}>Q</div>
+                    <div style={{
+                      flex: 1, padding: "10px 14px", background: "rgba(128,21,47,0.04)",
+                      borderLeft: "3px solid var(--claret)",
+                      fontFamily: "var(--font-text)", fontSize: "14px", lineHeight: 1.6,
+                      color: "var(--charcoal)", fontStyle: "italic",
+                    }}>
+                      {fu.prompt}
+                    </div>
+                  </div>
+                  {/* Model's response */}
+                  <div style={{
+                    display: "flex", gap: "10px", alignItems: "flex-start",
+                  }}>
+                    <div style={{
+                      flexShrink: 0, width: "24px", height: "24px", borderRadius: "50%",
+                      background: "var(--teal)", color: "#fff", display: "flex",
+                      alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: 700,
+                      marginTop: "2px",
+                    }}>A</div>
+                    <div style={{ flex: 1 }}>
+                      <div className="prose">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{fu.response}</ReactMarkdown>
+                      </div>
+                      <div style={{
+                        marginTop: "6px", fontSize: "11px", color: "var(--grey-light)",
+                        fontFamily: "'Menlo','Consolas',monospace",
+                      }}>
+                        {fu.model.split('/').pop()} · {fu.tokens} tokens · {(fu.durationMs / 1000).toFixed(1)}s
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Follow-up input */}
+          <div style={{
+            padding: "16px", border: "1px solid var(--rule)", background: "var(--white)",
+          }}>
+            <div className="section-label" style={{ marginBottom: "10px" }}>
+              {(job.followUps || []).length > 0 ? "Ask another follow-up" : "Ask a follow-up question"}
+            </div>
+            <textarea
+              value={followUpInput}
+              onChange={(e) => setFollowUpInput(e.target.value)}
+              placeholder="e.g. Can you drill deeper into the regulatory risks you mentioned in section 3?"
+              disabled={followUpLoading}
+              style={{
+                width: "100%", minHeight: "80px", padding: "10px 12px",
+                border: "1px solid var(--rule)", background: "var(--off-white)",
+                fontFamily: "var(--font-text)", fontSize: "14px", lineHeight: 1.5,
+                color: "var(--charcoal)", resize: "vertical",
+                opacity: followUpLoading ? 0.5 : 1,
+              }}
+            />
+            {followUpError && (
+              <div style={{ marginTop: "6px", fontSize: "12px", color: "var(--claret)" }}>
+                {followUpError}
+              </div>
+            )}
+            <div style={{ display: "flex", gap: "8px", marginTop: "10px", alignItems: "center" }}>
+              <button
+                onClick={async () => {
+                  if (!followUpInput.trim() || followUpLoading) return;
+                  setFollowUpLoading(true);
+                  setFollowUpError(null);
+                  try {
+                    const res = await fetch(`/api/advisor/jobs/${jobId}/follow-up`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ prompt: followUpInput.trim() }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) {
+                      setFollowUpError(data.error || "Follow-up failed");
+                    } else {
+                      // Append the new follow-up to the job data
+                      setJob((prev) => ({
+                        ...prev,
+                        followUps: [...(prev.followUps || []), data],
+                      }));
+                      setFollowUpInput("");
+                    }
+                  } catch {
+                    setFollowUpError("Network error");
+                  } finally {
+                    setFollowUpLoading(false);
+                  }
+                }}
+                disabled={!followUpInput.trim() || followUpLoading}
+                className="btn btn-primary"
+                style={{
+                  opacity: !followUpInput.trim() || followUpLoading ? 0.5 : 1,
+                  cursor: !followUpInput.trim() || followUpLoading ? "not-allowed" : "pointer",
+                  borderBottom: "none", textDecoration: "none",
+                }}
+              >
+                {followUpLoading ? "⏳ Thinking..." : "→ Send follow-up"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Back to advisor CTA when done */}
       {(job.status === "DONE" || job.status === "FAILED") && (

@@ -35,6 +35,19 @@ export async function GET(
       parentJobId: true,
       createdAt: true,
       completedAt: true,
+      followUps: {
+        orderBy: { turnNumber: "asc" },
+        select: {
+          id: true,
+          turnNumber: true,
+          prompt: true,
+          response: true,
+          model: true,
+          tokens: true,
+          durationMs: true,
+          createdAt: true,
+        },
+      },
     },
   });
 
