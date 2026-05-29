@@ -7,8 +7,8 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 
 function maskKey(key: string): string {
-  if (!key || key.length < 12) return "••••••••";
-  return key.slice(0, 10) + "••••••••" + key.slice(-4);
+  if (!key || key.length < 8) return "••••••••";
+  return "••••••••" + key.slice(-4);
 }
 
 export async function GET() {

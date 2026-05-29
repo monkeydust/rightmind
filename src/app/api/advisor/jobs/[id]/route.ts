@@ -13,12 +13,18 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return Response.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
   const { id } = await params;
 
   const job = await prisma.advisorJob.findUnique({
     where: { id },
     select: {
       id: true,
+      userId: true,
       challenge: true,
       fileName: true,
       strategyId: true,
@@ -34,6 +40,10 @@ export async function GET(
 
   if (!job) {
     return Response.json({ error: "Job not found" }, { status: 404 });
+  }
+
+  if (job.userId !== session.user.id) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
   let progress = {};

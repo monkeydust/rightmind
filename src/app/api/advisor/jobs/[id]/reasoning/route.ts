@@ -6,14 +6,34 @@
  */
 
 import { prisma } from "@/lib/db";
+import { auth } from "@/auth";
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return Response.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
   const { id: jobId } = await params;
 
   try {
+    // Verify job exists and belongs to this user
+    const job = await prisma.advisorJob.findUnique({
+      where: { id: jobId },
+      select: { userId: true },
+    });
+
+    if (!job) {
+      return Response.json({ error: "Job not found" }, { status: 404 });
+    }
+
+    if (job.userId !== session.user.id) {
+      return Response.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const responses = await prisma.agentResponse.findMany({
       where: { jobId },
       orderBy: { createdAt: "asc" },

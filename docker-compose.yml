@@ -6,7 +6,7 @@ services:
     restart: unless-stopped
     shm_size: '512m'
     ports:
-      - "3001:3000"
+      - "127.0.0.1:3001:3000"
     environment:
       - NODE_ENV=production
       - DATABASE_URL=file:/app/data/production.db

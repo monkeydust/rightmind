@@ -8,6 +8,8 @@
 
 import { callModel } from "@/lib/llm";
 import type { LLMMessage } from "@/lib/types";
+import { auth } from "@/auth";
+import { prisma } from "@/lib/db";
 
 const MODEL = "google/gemini-3.1-flash-lite-preview";
 
@@ -74,7 +76,7 @@ function safeParseJSON(raw: string) {
 /** Call model and parse JSON, retrying once on failure */
 async function callAndParse(
   messages: LLMMessage[],
-  opts: { temperature: number; max_tokens: number }
+  opts: { temperature: number; max_tokens: number; apiKey?: string }
 ) {
   for (let attempt = 0; attempt < 2; attempt++) {
     const res = await callModel(MODEL, messages, {
@@ -92,6 +94,18 @@ async function callAndParse(
 
 export async function POST(request: Request) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return Response.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
+    // Use the user's own API key if they have one (BYOK)
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { openRouterKey: true },
+    });
+    const apiKey = user?.openRouterKey || undefined;
+
     const body = await request.json();
     const { step, challenge } = body;
 
@@ -105,7 +119,7 @@ export async function POST(request: Request) {
           { role: "system", content: QUESTIONS_SYSTEM },
           { role: "user", content: challenge.trim() },
         ],
-        { temperature: 0.7, max_tokens: 3000 }
+        { temperature: 0.7, max_tokens: 3000, apiKey }
       );
       return Response.json(parsed);
 
@@ -129,7 +143,7 @@ export async function POST(request: Request) {
           { role: "system", content: SYNTHESISE_SYSTEM },
           { role: "user", content: userMsg },
         ],
-        { temperature: 0.6, max_tokens: 3000 }
+        { temperature: 0.6, max_tokens: 3000, apiKey }
       );
       return Response.json(parsed);
 
