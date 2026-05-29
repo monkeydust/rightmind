@@ -1,10 +1,36 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+
+/* ─── Animated dots for loading states ──────────────────────── */
+function AnimatedDots() {
+  const [dots, setDots] = useState(1);
+  useEffect(() => {
+    const t = setInterval(() => setDots((d) => (d % 3) + 1), 400);
+    return () => clearInterval(t);
+  }, []);
+  return <span style={{ display: "inline-block", width: "16px", textAlign: "left" }}>{".".repeat(dots)}</span>;
+}
+
+/* ─── Refine Question Types (for follow-up refine) ─────────── */
+interface RefineQuestion {
+  id: string;
+  question: string;
+  type: "multi" | "yesno" | "scale";
+  options: string[];
+  multiSelect?: boolean;
+}
+
+interface RefineAnswer {
+  id: string;
+  question: string;
+  selected: string[];
+  detail?: string;
+}
 
 interface AgentStep {
   agentRole: string;
@@ -486,6 +512,119 @@ export default function JobDetailPage() {
   const [followUpInput, setFollowUpInput] = useState("");
   const [followUpLoading, setFollowUpLoading] = useState(false);
   const [followUpError, setFollowUpError] = useState<string | null>(null);
+
+  // Follow-up refine state
+  const [fuRefineState, setFuRefineState] = useState<
+    "idle" | "loading" | "questions" | "synthesising" | "preview" | "done"
+  >("idle");
+  const [fuQuestions, setFuQuestions] = useState<RefineQuestion[]>([]);
+  const [fuAnswers, setFuAnswers] = useState<RefineAnswer[]>([]);
+  const [fuRefinedPreview, setFuRefinedPreview] = useState("");
+  const [fuRefineError, setFuRefineError] = useState("");
+  const followUpRef = useRef<HTMLTextAreaElement>(null);
+
+  const autoSizeFollowUp = useCallback(() => {
+    const el = followUpRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
+  }, []);
+
+  useEffect(() => { setTimeout(autoSizeFollowUp, 0); }, [followUpInput, autoSizeFollowUp]);
+
+  function resetFuRefiner() {
+    setFuRefineState("idle");
+    setFuQuestions([]);
+    setFuAnswers([]);
+    setFuRefinedPreview("");
+    setFuRefineError("");
+  }
+
+  async function handleFuRefine() {
+    if (!followUpInput.trim()) return;
+    setFuRefineState("loading");
+    setFuRefineError("");
+    try {
+      const res = await fetch(`/api/advisor/jobs/${jobId}/follow-up/refine`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ step: "questions", prompt: followUpInput.trim() }),
+      });
+      const data = await res.json();
+      if (data.questions?.length) {
+        setFuQuestions(data.questions);
+        setFuAnswers(data.questions.map((q: RefineQuestion) => ({
+          id: q.id, question: q.question, selected: [],
+        })));
+        setFuRefineState("questions");
+      } else {
+        setFuRefineError("Couldn't generate questions. Try adding more detail.");
+        setFuRefineState("idle");
+      }
+    } catch {
+      setFuRefineError("Network error. Please retry.");
+      setFuRefineState("idle");
+    }
+  }
+
+  function toggleFuOption(qId: string, option: string, multiSelect?: boolean) {
+    setFuAnswers((prev) =>
+      prev.map((a) => {
+        if (a.id !== qId) return a;
+        if (multiSelect) {
+          const has = a.selected.includes(option);
+          return { ...a, selected: has ? a.selected.filter((s) => s !== option) : [...a.selected, option] };
+        }
+        return { ...a, selected: a.selected[0] === option ? [] : [option] };
+      })
+    );
+  }
+
+  function setFuDetail(qId: string, detail: string) {
+    setFuAnswers((prev) =>
+      prev.map((a) => (a.id === qId ? { ...a, detail } : a))
+    );
+  }
+
+  async function handleFuSynthesise() {
+    setFuRefineState("synthesising");
+    try {
+      const res = await fetch(`/api/advisor/jobs/${jobId}/follow-up/refine`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          step: "synthesise",
+          prompt: followUpInput.trim(),
+          answers: fuAnswers.filter((a) => a.selected.length > 0),
+        }),
+      });
+      const data = await res.json();
+      if (data.refined) {
+        setFuRefinedPreview(data.refined);
+        setFuRefineState("preview");
+      } else {
+        setFuRefineError("Synthesis failed. Try again.");
+        setFuRefineState("questions");
+      }
+    } catch {
+      setFuRefineError("Network error. Please retry.");
+      setFuRefineState("questions");
+    }
+  }
+
+  function acceptFuRefined() {
+    setFollowUpInput(fuRefinedPreview);
+    setFuRefineState("done");
+    setFuRefinedPreview("");
+    setTimeout(() => setFuRefineState("idle"), 3000);
+  }
+
+  function discardFuRefined() {
+    setFuRefinedPreview("");
+    setFuRefineState("questions");
+  }
+
+  const fuAnsweredCount = fuAnswers.filter((a) => a.selected.length > 0).length;
 
   async function handleDelete() {
     if (deleting) return;
@@ -1443,33 +1582,210 @@ export default function JobDetailPage() {
           <div style={{
             padding: "16px", border: "1px solid var(--rule)", background: "var(--white)",
           }}>
-            <div className="section-label" style={{ marginBottom: "10px" }}>
-              {(job.followUps || []).length > 0 ? "Ask another follow-up" : "Ask a follow-up question"}
+            {/* Header with refine button */}
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
+              <div className="section-label" style={{ marginBottom: 0 }}>
+                {(job.followUps || []).length > 0 ? "Ask another follow-up" : "Ask a follow-up question"}
+              </div>
+              {followUpInput.trim().length > 10 && fuRefineState === "idle" && !followUpLoading && (
+                <button
+                  type="button"
+                  onClick={handleFuRefine}
+                  style={{
+                    padding: "3px 12px", fontSize: "11px", fontFamily: "var(--font-ui)",
+                    fontWeight: 600, letterSpacing: "0.03em", color: "var(--teal)",
+                    background: "rgba(13,118,128,0.06)", border: "1px solid rgba(13,118,128,0.3)",
+                    borderRadius: "14px", cursor: "pointer", transition: "all 0.2s",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(13,118,128,0.12)"; e.currentTarget.style.borderColor = "var(--teal)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(13,118,128,0.06)"; e.currentTarget.style.borderColor = "rgba(13,118,128,0.3)"; }}
+                >
+                  ✦ Refine
+                </button>
+              )}
+              {fuRefineState === "done" && (
+                <span style={{ fontSize: "11px", color: "var(--teal)", fontWeight: 600 }}>✓ Refined</span>
+              )}
+              {(fuRefineState === "loading" || fuRefineState === "synthesising") && (
+                <span style={{ fontSize: "13px", color: "var(--teal)", fontWeight: 600 }}>
+                  {fuRefineState === "loading" ? "Analysing" : "Crafting"}<AnimatedDots />
+                </span>
+              )}
             </div>
+
             <textarea
+              ref={followUpRef}
               value={followUpInput}
-              onChange={(e) => setFollowUpInput(e.target.value)}
+              onChange={(e) => { setFollowUpInput(e.target.value); if (fuRefineState === "done") setFuRefineState("idle"); }}
               placeholder="e.g. Can you drill deeper into the regulatory risks you mentioned in section 3?"
               disabled={followUpLoading}
               style={{
                 width: "100%", minHeight: "80px", padding: "10px 12px",
                 border: "1px solid var(--rule)", background: "var(--off-white)",
                 fontFamily: "var(--font-text)", fontSize: "14px", lineHeight: 1.5,
-                color: "var(--charcoal)", resize: "vertical",
+                color: "var(--charcoal)", resize: "none", overflow: "hidden",
                 opacity: followUpLoading ? 0.5 : 1,
               }}
             />
+
+            {/* Refine error */}
+            {fuRefineError && (
+              <p style={{ fontSize: "12px", color: "var(--claret)", marginTop: "6px" }}>{fuRefineError}</p>
+            )}
+
+            {/* ─── Refined Preview ──────────────────────────── */}
+            {fuRefineState === "preview" && fuRefinedPreview && (
+              <div style={{
+                marginTop: "10px", padding: "14px 16px",
+                border: "1px solid var(--teal)", borderRadius: "6px", background: "var(--white)",
+              }}>
+                <div className="flex items-center justify-between" style={{ marginBottom: "8px" }}>
+                  <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--teal)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                    Refined follow-up
+                  </span>
+                </div>
+                <div style={{ fontSize: "14px", lineHeight: 1.7, color: "var(--charcoal)", fontFamily: "var(--font-text)" }}>
+                  {fuRefinedPreview}
+                </div>
+                <div className="flex items-center justify-end" style={{ marginTop: "12px", gap: "8px" }}>
+                  <button type="button" onClick={discardFuRefined} style={{
+                    background: "none", border: "none", fontSize: "12px", color: "var(--grey)",
+                    cursor: "pointer", fontFamily: "var(--font-ui)",
+                  }}>Discard</button>
+                  <button type="button" onClick={acceptFuRefined} style={{
+                    padding: "5px 14px", fontSize: "12px", fontFamily: "var(--font-ui)", fontWeight: 600,
+                    background: "var(--teal)", color: "var(--white)", border: "none",
+                    borderRadius: "4px", cursor: "pointer",
+                  }}>Accept ✓</button>
+                </div>
+              </div>
+            )}
+
+            {/* ─── Inline Refine Questions Panel ───────────── */}
+            {(fuRefineState === "questions" || fuRefineState === "synthesising") && fuQuestions.length > 0 && (
+              <div style={{
+                marginTop: "10px", padding: "14px 16px",
+                border: "1px solid var(--rule)", borderRadius: "6px", background: "var(--white)",
+              }}>
+                <div className="flex items-center justify-between" style={{ marginBottom: "12px" }}>
+                  <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--grey)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                    Quick refine
+                  </span>
+                  <button type="button" onClick={resetFuRefiner} style={{
+                    background: "none", border: "none", fontSize: "11px", color: "var(--grey-light)",
+                    cursor: "pointer", fontFamily: "var(--font-ui)",
+                  }}>Cancel</button>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  {fuQuestions.map((q, qi) => {
+                    const ans = fuAnswers.find((a) => a.id === q.id);
+                    const showDetail = ans && ans.detail !== undefined && ans.detail !== "";
+                    return (
+                      <div key={q.id}>
+                        <div style={{ fontSize: "13px", color: "var(--charcoal)", marginBottom: "6px", lineHeight: 1.4 }}>
+                          <span style={{ color: "var(--grey-light)", fontSize: "11px", marginRight: "4px" }}>{qi + 1}.</span>
+                          {q.question}
+                          {q.multiSelect && (
+                            <span style={{ fontSize: "10px", color: "var(--grey-light)", marginLeft: "4px" }}>(select any)</span>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap" style={{ gap: "4px" }}>
+                          {q.type === "yesno" ? (
+                            <>
+                              {["Yes", "No"].map((opt) => (
+                                <button key={opt} type="button"
+                                  onClick={() => toggleFuOption(q.id, opt.toLowerCase())}
+                                  style={{
+                                    padding: "3px 14px", fontSize: "12px", fontFamily: "var(--font-text)",
+                                    border: "1px solid",
+                                    borderColor: ans?.selected.includes(opt.toLowerCase()) ? "var(--teal)" : "var(--rule)",
+                                    borderRadius: "14px",
+                                    background: ans?.selected.includes(opt.toLowerCase()) ? "rgba(0,128,128,0.08)" : "transparent",
+                                    color: ans?.selected.includes(opt.toLowerCase()) ? "var(--teal)" : "var(--grey)",
+                                    cursor: "pointer", transition: "all 0.12s",
+                                    fontWeight: ans?.selected.includes(opt.toLowerCase()) ? 600 : 400,
+                                  }}
+                                >{opt}</button>
+                              ))}
+                            </>
+                          ) : (
+                            q.options.map((opt) => (
+                              <button key={opt} type="button"
+                                onClick={() => toggleFuOption(q.id, opt, q.multiSelect)}
+                                style={{
+                                  padding: "3px 10px", fontSize: "11px", fontFamily: "var(--font-text)",
+                                  border: "1px solid",
+                                  borderColor: ans?.selected.includes(opt) ? "var(--teal)" : "var(--rule)",
+                                  borderRadius: "14px",
+                                  background: ans?.selected.includes(opt) ? "rgba(0,128,128,0.08)" : "transparent",
+                                  color: ans?.selected.includes(opt) ? "var(--teal)" : "var(--grey)",
+                                  cursor: "pointer", transition: "all 0.12s",
+                                  fontWeight: ans?.selected.includes(opt) ? 600 : 400,
+                                }}
+                              >{opt}</button>
+                            ))
+                          )}
+                        </div>
+                        {ans?.selected.length ? (
+                          showDetail ? (
+                            <input type="text" placeholder="Add detail (optional)"
+                              value={ans.detail || ""}
+                              onChange={(e) => setFuDetail(q.id, e.target.value)}
+                              style={{
+                                marginTop: "4px", width: "100%", padding: "4px 8px", fontSize: "11px",
+                                border: "1px solid var(--rule)", borderRadius: "4px",
+                                color: "var(--charcoal)", fontFamily: "var(--font-text)", background: "transparent",
+                              }}
+                            />
+                          ) : (
+                            <button type="button" onClick={() => setFuDetail(q.id, " ")} style={{
+                              marginTop: "3px", background: "none", border: "none", fontSize: "10px",
+                              color: "var(--grey-light)", cursor: "pointer", fontFamily: "var(--font-text)", padding: 0,
+                            }}>+ add detail</button>
+                          )
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="flex items-center justify-between" style={{ marginTop: "14px", paddingTop: "10px", borderTop: "1px solid var(--rule)" }}>
+                  <span style={{ fontSize: "11px", color: "var(--grey-light)" }}>
+                    {fuAnsweredCount} of {fuQuestions.length} answered
+                  </span>
+                  <button type="button" onClick={handleFuSynthesise}
+                    disabled={fuRefineState === "synthesising"}
+                    style={{
+                      padding: "5px 14px", fontSize: "12px", fontFamily: "var(--font-ui)", fontWeight: 600,
+                      background: "var(--charcoal)", color: "var(--white)", border: "none",
+                      borderRadius: "4px",
+                      cursor: fuRefineState === "synthesising" ? "wait" : "pointer",
+                      opacity: fuRefineState === "synthesising" ? 0.6 : 1,
+                      transition: "opacity 0.15s",
+                    }}
+                  >
+                    {fuRefineState === "synthesising" ? "Crafting..." : "Generate refined follow-up →"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Follow-up error */}
             {followUpError && (
               <div style={{ marginTop: "6px", fontSize: "12px", color: "var(--claret)" }}>
                 {followUpError}
               </div>
             )}
+
+            {/* Submit + loading indicator */}
             <div style={{ display: "flex", gap: "8px", marginTop: "10px", alignItems: "center" }}>
               <button
                 onClick={async () => {
                   if (!followUpInput.trim() || followUpLoading) return;
                   setFollowUpLoading(true);
                   setFollowUpError(null);
+                  resetFuRefiner();
                   try {
                     const res = await fetch(`/api/advisor/jobs/${jobId}/follow-up`, {
                       method: "POST",
@@ -1480,7 +1796,6 @@ export default function JobDetailPage() {
                     if (!res.ok) {
                       setFollowUpError(data.error || "Follow-up failed");
                     } else {
-                      // Append the new follow-up to the job data
                       setJob((prev) => ({
                         ...prev,
                         followUps: [...(prev.followUps || []), data],
@@ -1501,8 +1816,14 @@ export default function JobDetailPage() {
                   borderBottom: "none", textDecoration: "none",
                 }}
               >
-                {followUpLoading ? "⏳ Thinking..." : "→ Send follow-up"}
+                {followUpLoading ? "Thinking" : "→ Send follow-up"}
+                {followUpLoading && <AnimatedDots />}
               </button>
+              {followUpLoading && (
+                <span style={{ fontSize: "12px", color: "var(--grey-light)", fontStyle: "italic" }}>
+                  Analysing with full conversation context
+                </span>
+              )}
             </div>
           </div>
         </div>
