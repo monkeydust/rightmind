@@ -28,7 +28,14 @@ export async function POST() {
           email: DEMO_EMAIL,
           name: "Demo User",
           emailVerified: new Date(),
+          openRouterKey: process.env.OPENROUTER_API_KEY || null,
         },
+      });
+    } else if (!user.openRouterKey && process.env.OPENROUTER_API_KEY) {
+      // Ensure demo user always has a working API key
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { openRouterKey: process.env.OPENROUTER_API_KEY },
       });
     }
 
