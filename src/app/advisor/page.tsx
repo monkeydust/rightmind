@@ -751,11 +751,13 @@ export default function AdvisorPage() {
       label: "🧁 Bristol bakery dilemma",
       text: `I run a small bakery in Bristol with 3 full-time staff. Annual revenue is £180,000 but net profit margins have dropped from 14% two years ago to 8% now — mainly due to ingredient costs rising 22% and a new Greggs opening 200m away that's taken our lunchtime sandwich trade. We still have a loyal base of ~400 regular customers and our sourdough and pastries get 4.8 stars on Google (180 reviews). My lease is up for renewal in 14 months and the landlord has signalled a 15% rent increase. I have £35,000 in savings and could access a £50,000 SEIS-backed loan from a family friend. My partner thinks we should open a second location in Clifton where there's no artisan bakery. My accountant says fix margins first. A local food influencer (28k followers) has offered us a delivery partnership through her platform for 18% commission. What should I do?`,
       demoIndex: 0,
+      strategyId: "deep-dive",
     },
     {
       label: "🏠 London family housing",
       text: `We're a family of 4 (kids aged 3 and 7) currently renting a 2-bed flat in Clapham for £2,400/month. Combined household income is £135,000. We have £120,000 saved for a deposit and my parents have offered to gift us another £80,000, but only if we buy somewhere within 30 minutes of their place in Bromley. Our eldest starts Year 3 in September and the local primary is rated Outstanding — if we move out of catchment we lose the place. My wife works hybrid from Canary Wharf (2 days in office), I'm fully remote. We've been offered a 5-year fixed rate at 4.2% but the broker says rates could drop to 3.5% by Q1 2027 if we wait. The 3-bed houses we want in Clapham start at £750,000 and need £40-60k of work. In Bromley, equivalent houses are £480,000 and move-in ready, but my wife's commute would go from 25 minutes to 55 minutes each way. A colleague suggested we keep renting and invest the deposit in an index fund instead. What's the right move?`,
       demoIndex: 1,
+      strategyId: "all-angles",
     },
   ];
 
@@ -782,7 +784,13 @@ export default function AdvisorPage() {
           text: ex.text,
           onSelect: () => {
             setDemoMode(ex.demoIndex);
-            setAllAngles(true);
+            if (ex.strategyId === "all-angles") {
+              setAllAngles(true);
+              setSelectedStrategy(null);
+            } else {
+              setAllAngles(false);
+              setSelectedStrategy(ex.strategyId);
+            }
           },
         }))}
         onRecommendation={handleRecommendation}
