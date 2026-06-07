@@ -8,7 +8,7 @@ RightMind orchestrates multiple AI models — each with genuinely different reas
 
 ## See it in action
 
-https://github.com/monkeydust/rightmind/raw/master/docs/demo.mp4
+**[▶ Watch the demo](https://streamable.com/e49cgt)**
 
 ## What happens when you submit a challenge
 
