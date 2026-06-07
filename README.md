@@ -1,6 +1,6 @@
 # RightMind
 
-**A single AI gives you a single perspective. RightMind gives you the argument that already happened through Multi Agent approach using different debate strategies.**
+**A single AI gives you a single perspective. RightMind gives you the debtate through a Multi Agent approach using many LLM models**
 
 When you ask ChatGPT or Claude a question, you get one answer from one model. It's often good. But it's never been challenged. Nobody played devil's advocate. Nobody checked the assumptions. Nobody asked *"what did you miss?"*
 
