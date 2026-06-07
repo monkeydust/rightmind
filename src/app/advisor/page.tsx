@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { StrategyDiagram } from "@/components/StrategyDiagram";
 
@@ -647,15 +647,27 @@ export default function AdvisorPage() {
     reader.readAsDataURL(file);
   }
 
+  const searchParams = useSearchParams();
+
   useEffect(() => {
     fetch("/api/advisor/strategies")
       .then((r) => r.json())
       .then((data) => {
         setStrategies(data.strategies || []);
         setLoaded(true);
+
+        // Pre-select strategy from ?strategy= query param
+        const preselect = searchParams.get("strategy");
+        if (preselect) {
+          if (preselect === "all-angles") {
+            setAllAngles(true);
+          } else if ((data.strategies || []).some((s: StrategySummary) => s.id === preselect)) {
+            setSelectedStrategy(preselect);
+          }
+        }
       })
       .catch(() => setLoaded(true));
-  }, []);
+  }, [searchParams]);
 
   const selected = strategies.find((s) => s.id === selectedStrategy);
 

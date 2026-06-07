@@ -208,7 +208,7 @@ export default function StrategyDetailPage() {
 
       {/* CTA */}
       <div style={{ marginTop: "32px", borderTop: "1px solid var(--rule)", paddingTop: "16px" }}>
-        <Link href="/advisor" className="btn btn-primary" style={{ textDecoration: "none", borderBottom: "none" }}>
+        <Link href={`/advisor?strategy=${id}`} className="btn btn-primary" style={{ textDecoration: "none", borderBottom: "none" }}>
           Use this strategy →
         </Link>
       </div>
