@@ -10,10 +10,6 @@ RightMind orchestrates multiple AI models — each with genuinely different reas
 
 https://github.com/monkeydust/rightmind/raw/master/docs/demo.mp4
 
-## Try it
-
-**[Live demo →](http://89.167.62.131:3001)** — Type `demo@demo.com` on the login page for instant access with pre-loaded examples. No API key needed.
-
 ## What happens when you submit a challenge
 
 **1. Refine** — A lightweight model analyses your rough description and generates targeted clarifying questions: budget ranges, timelines, constraints. It classifies your problem type (Decision, Strategy, Diagnosis, Exploration) and recommends the best strategy automatically.
