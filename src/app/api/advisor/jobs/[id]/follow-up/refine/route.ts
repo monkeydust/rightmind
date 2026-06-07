@@ -178,8 +178,9 @@ export async function POST(
     }
   } catch (error) {
     console.error("Follow-up refine error:", error);
+    const message = error instanceof Error ? error.message : "Follow-up refinement failed";
     return Response.json(
-      { error: "Follow-up refinement failed" },
+      { error: message },
       { status: 500 }
     );
   }

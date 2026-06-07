@@ -551,6 +551,11 @@ export default function JobDetailPage() {
         body: JSON.stringify({ step: "questions", prompt: followUpInput.trim() }),
       });
       const data = await res.json();
+      if (!res.ok) {
+        setFuRefineError(data.error || `Server error (${res.status})`);
+        setFuRefineState("idle");
+        return;
+      }
       if (data.questions?.length) {
         setFuQuestions(data.questions);
         setFuAnswers(data.questions.map((q: RefineQuestion) => ({
