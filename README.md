@@ -8,9 +8,7 @@ RightMind orchestrates multiple AI models — each with genuinely different reas
 
 ## See it in action
 
-[![Watch the demo](https://thumbs-east.streamable.com/image/e49cgt.jpg)](https://streamable.com/e49cgt)
-
-> 👆 **Click to watch** — a walkthrough of a real analysis
+https://github.com/monkeydust/rightmind/raw/master/docs/demo.mp4
 
 ## Try it
 
