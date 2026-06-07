@@ -6,6 +6,12 @@ When you ask ChatGPT or Claude a question, you get one answer from one model. It
 
 RightMind orchestrates multiple AI models — each with genuinely different reasoning architectures — into structured analytical workflows. Your question gets debated, stress-tested, and synthesised before the answer reaches you.
 
+## See it in action
+
+[![Watch the demo](https://thumbs-east.streamable.com/image/e49cgt.jpg)](https://streamable.com/e49cgt)
+
+> 👆 **Click to watch** — a walkthrough of a real analysis
+
 ## Try it
 
 **[Live demo →](http://89.167.62.131:3001)** — Type `demo@demo.com` on the login page for instant access with pre-loaded examples. No API key needed.
