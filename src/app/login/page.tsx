@@ -35,6 +35,24 @@ function LoginContent() {
     setLoading(true);
     setError("");
 
+    // Demo mode: instant login without magic link
+    if (email.trim().toLowerCase() === "demo@demo.com") {
+      try {
+        const res = await fetch("/api/auth/demo", { method: "POST" });
+        const data = await res.json();
+        if (data.success) {
+          router.replace(data.redirectTo || "/advisor");
+          return;
+        }
+        setError(data.error || "Demo login failed. Please try again.");
+      } catch {
+        setError("Network error. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     try {
       // Get CSRF token first
       const csrfRes = await fetch("/api/auth/csrf");
@@ -175,7 +193,10 @@ function LoginContent() {
                 transition: "opacity 0.15s",
               }}
             >
-              {loading ? "Sending link..." : "Send magic link →"}
+              {loading
+                ? (email.trim().toLowerCase() === "demo@demo.com" ? "Entering demo..." : "Sending link...")
+                : (email.trim().toLowerCase() === "demo@demo.com" ? "Enter demo →" : "Send magic link →")
+              }
             </button>
           </form>
         </div>
@@ -183,6 +204,28 @@ function LoginContent() {
         <p style={{ textAlign: "center", color: "var(--grey-light)", fontSize: "12px", marginTop: "20px", lineHeight: 1.6 }}>
           No password needed. We&apos;ll email you a secure link<br />
           that logs you in instantly.
+        </p>
+
+        <p style={{ textAlign: "center", marginTop: "16px" }}>
+          <button
+            type="button"
+            onClick={() => setEmail("demo@demo.com")}
+            style={{
+              background: "none",
+              border: "1px solid var(--rule)",
+              borderRadius: "6px",
+              padding: "8px 16px",
+              fontSize: "12px",
+              color: "var(--grey)",
+              cursor: "pointer",
+              fontFamily: "var(--font-ui)",
+              transition: "border-color 0.15s, color 0.15s",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--teal)"; e.currentTarget.style.color = "var(--teal)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--rule)"; e.currentTarget.style.color = "var(--grey)"; }}
+          >
+            🎯 Try the demo — no account needed
+          </button>
         </p>
       </div>
     </div>
