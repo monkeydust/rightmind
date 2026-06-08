@@ -97,7 +97,7 @@ export async function POST(
     // Call the model
     const res = await callModel(FOLLOW_UP_MODEL, messages, {
       temperature: 0.5,
-      max_tokens: 8192,
+      max_tokens: 16384,
       apiKey,
     });
 
