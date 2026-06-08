@@ -10,6 +10,8 @@ RightMind orchestrates multiple AI models — each with genuinely different reas
 
 https://github.com/user-attachments/assets/91ec217e-3f54-434e-bc2f-a0661a6f1a06
 
+🔊 **[Watch with voiceover walkthrough →](https://streamable.com/e49cgt)**
+
 ## What happens when you submit a challenge
 
 **1. Refine** — A lightweight model analyses your rough description and generates targeted clarifying questions: budget ranges, timelines, constraints. It classifies your problem type (Decision, Strategy, Diagnosis, Exploration) and recommends the best strategy automatically.
