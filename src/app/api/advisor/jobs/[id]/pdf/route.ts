@@ -181,6 +181,35 @@ function buildMarkdownHtml(report: string, challenge: string): string {
 }
 
 /**
+ * Build HTML for follow-up conversation thread.
+ */
+function buildFollowUpsHtml(followUps: { turnNumber: number; prompt: string; response: string; model: string; createdAt: Date }[]): string {
+  if (!followUps || followUps.length === 0) return "";
+
+  const turns = followUps.map((fu) => {
+    const responseHtml = marked.parse(fu.response);
+    return `
+      <div style="margin-bottom: 20px;">
+        <div style="display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px;">
+          <div style="width: 24px; height: 24px; border-radius: 50%; background: #0d7680; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0;">Q</div>
+          <div style="font-size: 14px; color: #333; line-height: 1.6; padding-top: 2px;">${escapeHtml(fu.prompt)}</div>
+        </div>
+        <div style="display: flex; align-items: flex-start; gap: 10px;">
+          <div style="width: 24px; height: 24px; border-radius: 50%; background: #6366f1; color: white; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0;">A</div>
+          <div class="prose" style="font-size: 13px; color: #444; line-height: 1.6; flex: 1;">${responseHtml}</div>
+        </div>
+        <div style="font-size: 10px; color: #bbb; margin-top: 4px; margin-left: 34px;">${fu.model.split('/').pop()}</div>
+      </div>`;
+  }).join('');
+
+  return `
+    <div style="margin-top: 32px; padding-top: 20px; border-top: 2px solid #0d7680;">
+      <h2 style="font-size: 16px; font-weight: 700; color: #1a1a1a; margin: 0 0 16px;">Follow-up Conversation</h2>
+      ${turns}
+    </div>`;
+}
+
+/**
  * Wrap report HTML in a full page with print CSS.
  */
 function wrapInPage(bodyHtml: string, title: string, strategyName: string, strategyIcon: string, date: string): string {
@@ -337,6 +366,16 @@ export async function GET(
       report: true,
       userId: true,
       createdAt: true,
+      followUps: {
+        orderBy: { turnNumber: "asc" },
+        select: {
+          turnNumber: true,
+          prompt: true,
+          response: true,
+          model: true,
+          createdAt: true,
+        },
+      },
     },
   });
 
@@ -377,7 +416,7 @@ export async function GET(
     : job.challenge;
 
   const fullHtml = wrapInPage(
-    bodyHtml,
+    bodyHtml + buildFollowUpsHtml(job.followUps),
     `${strategy.name} — ${titleSnippet}`,
     strategy.name,
     strategy.icon,

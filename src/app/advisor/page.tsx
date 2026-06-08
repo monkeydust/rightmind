@@ -619,6 +619,28 @@ export default function AdvisorPage() {
   const [fileDragOver, setFileDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Restore challenge from sessionStorage on mount (survives navigation to strategy pages)
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+    try {
+      const saved = sessionStorage.getItem("rightmind_challenge");
+      if (saved) setChallenge(saved);
+    } catch { /* ignore */ }
+  }, []);
+
+  // Persist challenge to sessionStorage on change
+  useEffect(() => {
+    try {
+      if (challenge) {
+        sessionStorage.setItem("rightmind_challenge", challenge);
+      } else {
+        sessionStorage.removeItem("rightmind_challenge");
+      }
+    } catch { /* ignore */ }
+  }, [challenge]);
+
   const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
   const ACCEPTED_TYPES = [
     "application/pdf",
@@ -710,6 +732,7 @@ export default function AdvisorPage() {
         });
         const data = await res.json();
         if (res.ok && data.jobId) {
+          try { sessionStorage.removeItem("rightmind_challenge"); } catch { /* ignore */ }
           router.push(`/advisor/jobs/${data.jobId}`);
         } else {
           alert(data.error || "Demo failed");
@@ -735,6 +758,7 @@ export default function AdvisorPage() {
       });
       const data = await res.json();
       if (res.ok && data.jobId) {
+        try { sessionStorage.removeItem("rightmind_challenge"); } catch { /* ignore */ }
         router.push(`/advisor/jobs/${data.jobId}`);
       } else {
         alert(data.error || "Submit failed");

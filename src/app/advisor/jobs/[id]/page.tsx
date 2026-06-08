@@ -349,13 +349,14 @@ async function copyTextToClipboard(text: string) {
   }
 }
 
-function CopyBar({ jobId, challenge, strategyId, report, showReasoning, reasoningTraces }: {
+function CopyBar({ jobId, challenge, strategyId, report, showReasoning, reasoningTraces, followUps }: {
   jobId: string;
   challenge: string;
   strategyId: string;
   report: string;
   showReasoning: boolean;
   reasoningTraces: ReasoningTrace[];
+  followUps?: FollowUp[];
 }) {
   const [copyState, setCopyState] = useState<"idle" | "copied-report" | "copied-discussion" | "copied-transcript" | "loading">("idle");
 
@@ -376,7 +377,16 @@ function CopyBar({ jobId, challenge, strategyId, report, showReasoning, reasonin
     const strategyDesc = STRATEGY_DESCRIPTIONS[strategyId] || "";
     const reasoning = showReasoning ? buildReasoningBlock(reasoningTraces) : "";
 
-    const text = `I've had the following challenge analysed by a multi-agent AI advisory system called RightMind. Here's the full context — I'd like to discuss the findings with you.
+    // Build follow-up conversation thread
+    let followUpThread = "";
+    if (followUps && followUps.length > 0) {
+      const turns = followUps.map((fu, i) =>
+        `### Follow-up ${i + 1}\n\n**Question:** ${fu.prompt}\n\n**Response (${fu.model}):**\n\n${fu.response}`
+      ).join("\n\n---\n\n");
+      followUpThread = `\n\n---\n\n## Follow-up Conversation\n\n${turns}`;
+    }
+
+    const text = `I've had the following challenge analysed by a multi-agent AI advisory system called RightMind. Here's the full context - I'd like to discuss the findings with you.
 
 ## My Challenge
 
@@ -388,7 +398,7 @@ ${strategyDesc}
 
 ## Final Analysis
 
-${report}${reasoning}
+${report}${followUpThread}${reasoning}
 
 ---
 
@@ -1223,6 +1233,7 @@ export default function JobDetailPage() {
                 report={meta.meta_recommendation || ""}
                 showReasoning={showReasoning}
                 reasoningTraces={reasoningTraces}
+                followUps={job.followUps}
               />
 
               {/* Reasoning traces */}
@@ -1514,6 +1525,7 @@ export default function JobDetailPage() {
               report={job.report}
               showReasoning={showReasoning}
               reasoningTraces={reasoningTraces}
+              followUps={job.followUps}
             />
 
             {/* Reasoning traces panel */}
