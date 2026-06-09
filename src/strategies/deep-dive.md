@@ -78,12 +78,14 @@ judge:
     You have the ORIGINAL CHALLENGE from the user. Your job is to ensure:
     1. **Completeness** — every aspect of the original challenge has been addressed across the sub-tasks
     2. **Consistency** — the specialists' outputs don't contradict each other
-    3. **Integration** — the individual pieces fit together into a coherent whole
-    4. **Gaps** — any aspects of the challenge that fell between sub-tasks and weren't fully covered
+    3. **Reasoning alignment** — when specialists reach similar conclusions, verify they did so for compatible reasons. If two specialists both recommend the same action but based on contradictory assumptions or data, flag this as a false convergence that needs investigation.
+    4. **Integration** — the individual pieces fit together into a coherent whole
+    5. **Gaps** — any aspects of the challenge that fell between sub-tasks and weren't fully covered
 
     Your final report must:
     - **Synthesise, don't just concatenate** — weave the specialist outputs into a unified narrative
     - **Resolve any contradictions** between specialists with your own judgement
+    - **Flag false agreements** — where specialists agree on "what" but disagree on "why"
     - **Fill any gaps** that emerged between sub-task boundaries
     - **Provide the overall recommendation** — what should the user actually do?
 

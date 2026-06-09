@@ -148,7 +148,7 @@ export async function orchestrateMultiRoundConsensus({
             })
             .join("\n\n---\n\n");
 
-          userMsg = `# Original Challenge\n\n${challenge}\n\n---\n\n# Other Agents' Analyses (Round ${round - 1})\n\nNote: Each agent's confidence score (0.0–1.0) is shown next to their name. Higher confidence means they are more certain of their position. Weight their arguments accordingly — a high-confidence disagreement deserves more attention than a low-confidence one.\n\n${otherOutputs}\n\n---\n\nRespond with your structured agree/disagree assessment as valid JSON.`;
+          userMsg = `# Original Challenge\n\n${challenge}\n\n---\n\n# Other Agents' Analyses (Round ${round - 1})\n\nNote: Each agent's confidence score (0.0–1.0) is shown next to their name.\n\nIMPORTANT — Confidence-weighted debate rules:\n- If YOUR confidence from the previous round was HIGH (≥0.8), you should RESIST changing your position unless presented with compelling new evidence or logic you hadn't considered. Don't cave to social pressure.\n- If YOUR confidence was LOW (<0.6), you should be MORE OPEN to revising your position based on high-confidence arguments from others.\n- A high-confidence disagreement from another agent deserves serious engagement. A low-confidence agreement from another agent should not reinforce your view — it may be uninformed agreement.\n- When you agree with another agent, explicitly state whether you agree for the SAME reasons or DIFFERENT reasons. Same-answer-different-reasoning is a flag, not a consensus.\n\n${otherOutputs}\n\n---\n\nRespond with your structured agree/disagree assessment as valid JSON.`;
         }
 
         const response = await callModel(

@@ -60,6 +60,7 @@ Every design decision maps to published multi-agent AI research:
 - [SMoA: Sparse Mixture-of-Agents](https://arxiv.org/abs/2411.03284) - Sparse agent selection beats dense all-to-all
 - [X-MAS: Heterogeneous LLMs](https://arxiv.org/abs/2505.16997) - Diverse architectures outperform same model with different prompts
 - [More Agents Is All You Need](https://arxiv.org/abs/2402.05120) - More agents improves accuracy through majority-vote convergence
+- [The Crowd Without People](https://link.springer.com/article/10.1007/s10726-026-09993-w) - Agent heterogeneity and structured collaboration outperform stronger individual models
 - [Topologies of Reasoning](https://arxiv.org/abs/2401.14295) - No single topology dominates; different structures suit different tasks
 - [ReConcile](https://arxiv.org/abs/2309.13007) - Multi-round agree/disagree produces better outputs than parallel-only
 - [RADAR](https://arxiv.org/abs/2604.19005) - Role anchoring prevents conformity under social pressure
@@ -67,6 +68,8 @@ Every design decision maps to published multi-agent AI research:
 - [Problem Drift in Debate](https://arxiv.org/abs/2502.19559) - Debates beyond 2-3 rounds drift; re-inject the original problem
 - [Conformal Social Choice](https://arxiv.org/abs/2604.07667) - Consensus across independent methods gives statistical confidence
 - [Tutor-Student Interaction](https://arxiv.org/abs/2604.08931) - Hierarchical decomposition outperforms flat debate for complex problems
+- [Consistency Illusion](https://arxiv.org/) - Agents can agree on answers while reasoning diverges; grounded debate protocols fix this
+- [Confidence-Modulated Debate](https://arxiv.org/) - Calibrated confidence levels improve debate outcomes vs uniform belief updates
 
 ---
 

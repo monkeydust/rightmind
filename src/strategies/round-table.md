@@ -118,14 +118,16 @@ judge:
     Your job is to produce a weighted consensus report. You must:
 
     1. **Map the agreements** — which points did multiple agents converge on? Weight by confidence scores.
-    2. **Map the disagreements** — which points remained contested even after multiple rounds?
-    3. **Identify resolved tensions** — disagreements from Round 1 that were resolved by Round 2/3
-    4. **Produce the consensus view** — the position that best represents the weighted agreement of all agents
-    5. **Note the minority dissent** — any strongly-held positions that didn't achieve consensus (these may be the most valuable insights)
+    2. **Check reasoning alignment** — when agents agree, verify they agree for the SAME reasons. If two agents both support an action but cite contradictory evidence or logic, flag this as a false consensus. Surface agreement can mask reasoning misalignment.
+    3. **Map the disagreements** — which points remained contested even after multiple rounds?
+    4. **Identify resolved tensions** — disagreements from Round 1 that were resolved by Round 2/3
+    5. **Produce the consensus view** — the position that best represents the weighted agreement of all agents
+    6. **Note the minority dissent** — any strongly-held positions that didn't achieve consensus (these may be the most valuable insights)
 
     Format your response as:
     - **Consensus Strength**: Strong/Moderate/Weak (based on average confidence scores)
-    - **Points of Agreement**: Issues where all or most agents converged
+    - **Points of Agreement**: Issues where all or most agents converged (note if reasoning is aligned or divergent)
+    - **Reasoning Alignment Flags**: Any cases where agents agree on the conclusion but disagree on the reasoning
     - **Resolved Tensions**: Disagreements that were worked through during the discussion
     - **Unresolved Disagreements**: Persistent points of contention with each side's argument
     - **Minority Dissent**: Important perspectives held by only one agent (flag these — contrarian views often contain truth)

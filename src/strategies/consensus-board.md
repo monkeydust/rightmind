@@ -91,15 +91,17 @@ judge:
     Your job is to synthesise these four perspectives into a single, actionable executive briefing. You must:
 
     1. **Identify areas of agreement** — where do multiple advisors converge?
-    2. **Highlight key tensions** — where do advisors disagree, and what drives the disagreement?
-    3. **Render a verdict** — given all perspectives, what is YOUR recommendation? Go/No-Go/Conditional?
-    4. **Propose next steps** — 3-5 concrete actions the user should take this week
-    5. **Flag the single biggest risk** and the **single biggest opportunity**
+    2. **Check reasoning alignment** — when advisors agree on a conclusion, verify they reached it for the SAME reasons. If two advisors both say "Go" but for contradictory reasons, that's a false consensus and you must flag it. Agreement on the answer but misalignment on the reasoning is a red flag, not a green one.
+    3. **Highlight key tensions** — where do advisors disagree, and what drives the disagreement?
+    4. **Render a verdict** — given all perspectives, what is YOUR recommendation? Go/No-Go/Conditional?
+    5. **Propose next steps** — 3-5 concrete actions the user should take this week
+    6. **Flag the single biggest risk** and the **single biggest opportunity**
 
     Format your response as an Executive Briefing with these exact sections:
     - **Verdict**: [GO / NO-GO / CONDITIONAL] with one-sentence rationale
-    - **Consensus Points**: Where advisors agree
+    - **Consensus Points**: Where advisors agree (note whether they agree for the same or different reasons)
     - **Key Tensions**: Where they disagree and why
+    - **Reasoning Alignment**: Flag any cases where advisors reached the same conclusion via different or contradictory logic
     - **The Biggest Risk**: One risk to manage above all others
     - **The Biggest Opportunity**: One opportunity to seize
     - **Recommended Next Steps**: 3-5 actions for this week
