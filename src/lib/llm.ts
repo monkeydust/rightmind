@@ -12,6 +12,7 @@ const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 /**
  * Parse JSON from an LLM response, stripping markdown code fences if present.
  * Models sometimes return ```json ... ``` even with response_format: json_object.
+ * Also attempts to recover truncated JSON (when model hits max_tokens).
  */
 export function parseJSON<T = unknown>(raw: string): T {
   let cleaned = raw.trim();
@@ -19,7 +20,42 @@ export function parseJSON<T = unknown>(raw: string): T {
   if (cleaned.startsWith("```")) {
     cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?```\s*$/, "");
   }
-  return JSON.parse(cleaned);
+  try {
+    return JSON.parse(cleaned);
+  } catch (firstError) {
+    // Attempt truncated JSON recovery: close any open strings, arrays, objects
+    let repaired = cleaned;
+    // If cut mid-string, close the string
+    const quotes = (repaired.match(/"/g) || []).length;
+    if (quotes % 2 !== 0) {
+      // Trim back to last complete-looking content, then close the string
+      repaired = repaired.replace(/[^"]*$/, '"');
+    }
+    // Close any open brackets/braces
+    const opens: string[] = [];
+    let inStr = false;
+    let escape = false;
+    for (const ch of repaired) {
+      if (escape) { escape = false; continue; }
+      if (ch === "\\") { escape = true; continue; }
+      if (ch === '"') { inStr = !inStr; continue; }
+      if (inStr) continue;
+      if (ch === "{") opens.push("}");
+      else if (ch === "[") opens.push("]");
+      else if (ch === "}" || ch === "]") opens.pop();
+    }
+    // Remove any trailing comma before closing
+    repaired = repaired.replace(/,\s*$/, "");
+    repaired += opens.reverse().join("");
+
+    try {
+      console.warn(`[parseJSON] Recovered truncated JSON (${raw.length} chars)`);
+      return JSON.parse(repaired);
+    } catch {
+      // Recovery failed, throw original error
+      throw firstError;
+    }
+  }
 }
 
 /**

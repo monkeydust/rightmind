@@ -226,7 +226,7 @@ export async function orchestrateAllAngles({
       ],
       {
         temperature: 0.4,
-        max_tokens: 8192,
+        max_tokens: 16384,
         json: true,
         ...(includeReasoning ? { reasoning: { effort: "high" as const } } : {}),
       }
