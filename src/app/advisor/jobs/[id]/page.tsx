@@ -1009,7 +1009,7 @@ export default function JobDetailPage() {
           </span>
           <span style={{ opacity: 0.4 }}>|</span>
           <span>
-            📊 Tokens: <strong style={{ color: "var(--grey-lighter)" }}>{(job.totalTokens ?? 0).toLocaleString()}</strong>
+            📊 Tokens (in+out): <strong style={{ color: "var(--grey-lighter)" }}>{(job.totalTokens ?? 0).toLocaleString()}</strong>
           </span>
         </div>
       )}
