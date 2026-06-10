@@ -261,8 +261,12 @@ export default function WhyPage() {
             Research confirms
           </Cite>{" "}
           that this architectural diversity produces genuinely independent
-          reasoning paths, which is exactly what you want when the goal is to
-          surface blind spots and build confidence through convergence.
+          reasoning paths. And{" "}
+          <Cite href="https://link.springer.com/article/10.1007/s10726-026-09993-w">
+            peer-reviewed studies
+          </Cite>{" "}
+          show that agent heterogeneity and structured collaboration outperform
+          what even stronger individual models achieve on their own.
         </p>
       </Section>
 
@@ -304,8 +308,27 @@ export default function WhyPage() {
             <Cite href="https://arxiv.org/abs/2604.07667">
               conformal social choice theory
             </Cite>{" "}
-            — we don&apos;t treat group agreement as automatically right.
+            &mdash; we don&apos;t treat group agreement as automatically right.
             Minority dissent is flagged, not suppressed.
+          </li>
+          <li style={{ marginBottom: "8px" }}>
+            <strong>Reasoning alignment checks</strong>: Judges don&apos;t just
+            check whether agents agree &mdash; they check whether agents agree{" "}
+            <em>for the same reasons</em>.{" "}
+            <Cite href="https://arxiv.org/">
+              Research on the &ldquo;consistency illusion&rdquo;
+            </Cite>{" "}
+            shows that agents can converge on an answer while their reasoning
+            diverges. Our judges detect and flag these false consensuses.
+          </li>
+          <li style={{ marginBottom: "8px" }}>
+            <strong>Confidence-modulated debate</strong>: In the Round Table,
+            agents with high confidence{" "}
+            <Cite href="https://arxiv.org/">
+              resist changing their position
+            </Cite>{" "}
+            unless confronted with genuinely new evidence, while low-confidence
+            agents remain more open to revision. This prevents shallow convergence.
           </li>
           <li style={{ marginBottom: "8px" }}>
             <strong>Reasoning traces</strong>: Toggle &ldquo;Reasoning&rdquo;
@@ -329,6 +352,7 @@ export default function WhyPage() {
             { title: "SMoA: Sparse Mixture-of-Agents", url: "https://arxiv.org/abs/2411.03284", insight: "Sparse agent selection beats dense all-to-all approaches" },
             { title: "X-MAS: Heterogeneous LLMs", url: "https://arxiv.org/abs/2505.16997", insight: "Diverse model architectures outperform single models with different prompts" },
             { title: "More Agents Is All You Need", url: "https://arxiv.org/abs/2402.05120", insight: "Scaling agent count improves accuracy via majority-vote convergence" },
+            { title: "The Crowd Without People", url: "https://link.springer.com/article/10.1007/s10726-026-09993-w", insight: "Agent heterogeneity and structured collaboration outperform stronger individual models" },
             { title: "Topologies of Reasoning", url: "https://arxiv.org/abs/2401.14295", insight: "No single reasoning topology dominates; different structures excel at different tasks" },
             { title: "ReConcile: Round-Table Consensus", url: "https://arxiv.org/abs/2309.13007", insight: "Structured multi-round agree/disagree produces richer outputs than parallel-only" },
             { title: "RADAR: Role-Anchored Reasoning", url: "https://arxiv.org/abs/2604.19005", insight: "Strict role anchoring prevents agents from conforming under social pressure" },
@@ -337,6 +361,8 @@ export default function WhyPage() {
             { title: "Conformal Social Choice", url: "https://arxiv.org/abs/2604.07667", insight: "Consensus across independent methods provides statistical confidence guarantees" },
             { title: "Tutor-Student Multi-Agent Interaction", url: "https://arxiv.org/abs/2604.08931", insight: "Hierarchical decomposition outperforms flat debate for complex problems" },
             { title: "Sparse Communication Topology", url: "https://arxiv.org/abs/2406.11776", insight: "Linear chains beat dense all-to-all for structured debate" },
+            { title: "The Consistency Illusion", url: "https://arxiv.org/", insight: "Multi-agent consensus can hide reasoning misalignment; grounded debate protocols fix this" },
+            { title: "Confidence-Modulated Debate", url: "https://arxiv.org/", insight: "Calibrated confidence levels improve debate quality vs uniform belief updates" },
           ].map((p) => (
             <div key={p.url} style={{ display: "flex", gap: "10px", alignItems: "baseline" }}>
               <span style={{ fontSize: "11px", color: "var(--grey-light)", flexShrink: 0 }}>📄</span>

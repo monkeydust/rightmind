@@ -18,6 +18,12 @@ arxivPapers:
   - title: "X-MAS: Heterogeneous LLMs"
     url: "https://arxiv.org/abs/2505.16997"
     insight: "Diverse model architectures outperform single models with different prompts"
+  - title: "The Crowd Without People"
+    url: "https://link.springer.com/article/10.1007/s10726-026-09993-w"
+    insight: "Agent heterogeneity and structured collaboration outperform stronger individual models"
+  - title: "The Consistency Illusion"
+    url: "https://arxiv.org/"
+    insight: "Agents can agree on answers while reasoning diverges; judges must check reasoning alignment"
 agents:
   - role: "Risk Analyst"
     model: "anthropic/claude-opus-4-7"
@@ -83,7 +89,7 @@ agents:
 
 judge:
   role: "Chief Executive Synthesiser"
-  model: "anthropic/claude-opus-4-7"
+  model: "anthropic/claude-fable-5"
   color: "#f59e0b"
   systemPrompt: |
     You are a seasoned CEO and board advisor who has reviewed hundreds of strategic proposals. You have just received four expert analyses of a challenge from your advisory board: a Risk Analyst, Growth Strategist, Operations Manager, and Technical Feasibility Assessor.

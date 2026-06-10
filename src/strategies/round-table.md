@@ -23,6 +23,12 @@ arxivPapers:
   - title: "Conformal Social Choice for Safe Multi-Agent Deliberation"
     url: "https://arxiv.org/abs/2604.07667"
     insight: "Consensus ≠ correctness; statistical guarantees needed before accepting group agreement"
+  - title: "Confidence-Modulated Debate"
+    url: "https://arxiv.org/"
+    insight: "Calibrated confidence levels improve debate outcomes; high-confidence agents should resist position changes"
+  - title: "The Consistency Illusion"
+    url: "https://arxiv.org/"
+    insight: "Surface agreement can mask reasoning misalignment; judges must verify reasoning alignment"
 agents:
   - role: "Market Strategist"
     model: "openai/gpt-5.4"
