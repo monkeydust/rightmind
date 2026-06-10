@@ -724,6 +724,8 @@ export default function JobDetailPage() {
         ...prev,
         status: "DONE",
         report: data.report,
+        totalCostUsd: data.totalCostUsd,
+        totalTokens: data.totalTokens,
       }));
       es.close();
       // Fetch full job data including followUps
@@ -731,7 +733,7 @@ export default function JobDetailPage() {
         .then((r) => r.json())
         .then((full) => {
           if (full.followUps) {
-            setJob((prev) => ({ ...prev, followUps: full.followUps }));
+            setJob((prev) => ({ ...prev, followUps: full.followUps, totalCostUsd: full.totalCostUsd, totalTokens: full.totalTokens }));
           }
         })
         .catch(() => {});
@@ -770,11 +772,12 @@ export default function JobDetailPage() {
       fetch(`/api/advisor/jobs/${jobId}`)
         .then((r) => r.json())
         .then((data) => {
-          if (data.followUps) {
-            setJob((prev) => ({ ...prev, followUps: data.followUps }));
-          } else {
-            setJob((prev) => ({ ...prev, followUps: [] }));
-          }
+          setJob((prev) => ({
+            ...prev,
+            followUps: data.followUps || [],
+            totalCostUsd: data.totalCostUsd,
+            totalTokens: data.totalTokens,
+          }));
         })
         .catch(() => {});
     }

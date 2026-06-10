@@ -92,6 +92,8 @@ export async function GET(
             send("done", {
               status: "DONE",
               report: job.report,
+              totalCostUsd: job.totalCostUsd,
+              totalTokens: job.totalTokens,
               completedAt: job.completedAt?.toISOString(),
             });
             controller.close();
