@@ -66,6 +66,8 @@ interface JobData {
   strategyId?: string;
   report?: string;
   error?: string;
+  totalCostUsd?: number;
+  totalTokens?: number;
   followUps?: FollowUp[];
 }
 
@@ -983,6 +985,31 @@ export default function JobDetailPage() {
           {deleting ? "Deleting..." : "🗑️ Delete"}
         </button>
       </div>
+
+      {/* Cost summary */}
+      {job.status === "DONE" && (job.totalCostUsd ?? 0) > 0 && (
+        <div style={{
+          display: "flex",
+          gap: "16px",
+          alignItems: "center",
+          padding: "8px 14px",
+          marginBottom: "16px",
+          background: "var(--grey-darker)",
+          borderRadius: "6px",
+          border: "1px solid var(--grey-darkest)",
+          fontSize: "12px",
+          color: "var(--grey-light)",
+          fontFamily: "var(--font-ui)",
+        }}>
+          <span>
+            💰 Cost: <strong style={{ color: "var(--teal)" }}>${job.totalCostUsd!.toFixed(4)}</strong>
+          </span>
+          <span style={{ opacity: 0.4 }}>|</span>
+          <span>
+            📊 Tokens: <strong style={{ color: "var(--grey-lighter)" }}>{(job.totalTokens ?? 0).toLocaleString()}</strong>
+          </span>
+        </div>
+      )}
 
       {/* Progress steps */}
       {steps.length > 0 && (

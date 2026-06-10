@@ -124,6 +124,7 @@ export interface LLMResponse {
     prompt_tokens: number;
     completion_tokens: number;
     total_tokens: number;
+    costUsd: number; // Cost in USD from OpenRouter
   };
 }
 

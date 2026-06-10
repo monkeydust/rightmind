@@ -92,6 +92,9 @@ export async function orchestrateParallelAggregate({
     // ───────────────────────────────────────────────────────────────────────
     // PHASE 1: All agents analyse in parallel
     // ───────────────────────────────────────────────────────────────────────
+    let totalCostUsd = 0;
+    let totalTokens = 0;
+
     console.log(`[Job ${jobId}] Consensus Board: ${strategy.agents.length} agents running in parallel...`);
     await updateProgress(jobId, "analyse", allSteps);
 
@@ -125,9 +128,15 @@ export async function orchestrateParallelAggregate({
             response: response.content,
             reasoning: response.reasoning || null,
             tokens: response.usage.total_tokens,
+            promptTokens: response.usage.prompt_tokens,
+            completionTokens: response.usage.completion_tokens,
+            costUsd: response.usage.costUsd,
             durationMs: response._durationMs || 0,
           },
         });
+
+        totalCostUsd += response.usage.costUsd;
+        totalTokens += response.usage.total_tokens;
 
         // Mark done
         agentSteps[idx].status = "done";
@@ -177,9 +186,15 @@ export async function orchestrateParallelAggregate({
         response: judgeResponse.content,
         reasoning: judgeResponse.reasoning || null,
         tokens: judgeResponse.usage.total_tokens,
+        promptTokens: judgeResponse.usage.prompt_tokens,
+        completionTokens: judgeResponse.usage.completion_tokens,
+        costUsd: judgeResponse.usage.costUsd,
         durationMs: judgeResponse._durationMs || 0,
       },
     });
+
+    totalCostUsd += judgeResponse.usage.costUsd;
+    totalTokens += judgeResponse.usage.total_tokens;
 
     judgeStep.status = "done";
     judgeStep.completedAt = new Date().toISOString();
@@ -191,6 +206,8 @@ export async function orchestrateParallelAggregate({
         status: "DONE",
         report: judgeResponse.content,
         completedAt: new Date(),
+        totalCostUsd,
+        totalTokens,
         progress: JSON.stringify({ currentPhase: "done", steps: [...agentSteps, judgeStep] }),
       },
     });

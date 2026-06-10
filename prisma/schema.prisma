@@ -80,6 +80,8 @@ model AdvisorJob {
   parentJobId   String?  // For all-angles: links child strategy jobs to the parent
   webhookUrl    String?  // URL to POST to when job completes
   webhookSecret String?  // Optional secret to HMAC sign the webhook payload
+  totalCostUsd  Float    @default(0) // Total cost in USD for all LLM calls in this job
+  totalTokens   Int      @default(0) // Total tokens used across all LLM calls
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   completedAt   DateTime?
@@ -101,19 +103,22 @@ model ApiKey {
 }
 
 model AgentResponse {
-  id          String   @id @default(uuid())
-  jobId       String
-  job         AdvisorJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  agentRole   String   // e.g. "Risk Analyst", "Devil's Advocate"
-  agentModel  String   // e.g. "anthropic/claude-opus-4-7"
-  round       Int      @default(1) // Which round of the workflow
-  phase       String?  // e.g. "draft", "critique", "refine" (for sequential strategies)
-  prompt      String   // The full prompt sent to the model
-  response    String   // The model's response
-  reasoning   String?  // The model's thinking/reasoning trace (if requested)
-  tokens      Int      @default(0) // Total tokens used
-  durationMs  Int      @default(0) // How long the call took
-  createdAt   DateTime @default(now())
+  id               String   @id @default(uuid())
+  jobId            String
+  job              AdvisorJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  agentRole        String   // e.g. "Risk Analyst", "Devil's Advocate"
+  agentModel       String   // e.g. "anthropic/claude-opus-4-7"
+  round            Int      @default(1) // Which round of the workflow
+  phase            String?  // e.g. "draft", "critique", "refine" (for sequential strategies)
+  prompt           String   // The full prompt sent to the model
+  response         String   // The model's response
+  reasoning        String?  // The model's thinking/reasoning trace (if requested)
+  tokens           Int      @default(0) // Total tokens used
+  promptTokens     Int      @default(0) // Input tokens
+  completionTokens Int      @default(0) // Output tokens
+  costUsd          Float    @default(0) // Cost in USD for this call (from OpenRouter)
+  durationMs       Int      @default(0) // How long the call took
+  createdAt        DateTime @default(now())
 }
 
 model JobFollowUp {
@@ -125,6 +130,7 @@ model JobFollowUp {
   response   String     // The model's response (markdown)
   model      String     // Which model was used
   tokens     Int        @default(0)
+  costUsd    Float      @default(0) // Cost in USD for this follow-up call
   durationMs Int        @default(0)
   createdAt  DateTime   @default(now())
 }

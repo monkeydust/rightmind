@@ -33,6 +33,8 @@ export async function GET(
       error: true,
       progress: true,
       parentJobId: true,
+      totalCostUsd: true,
+      totalTokens: true,
       createdAt: true,
       completedAt: true,
       followUps: {

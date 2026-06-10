@@ -106,6 +106,9 @@ export async function orchestrateSequentialDebate({
   allSteps.push(judgeStep);
 
   try {
+    let totalCostUsd = 0;
+    let totalTokens = 0;
+
     let proposalText = "";
     let critiqueText = "";
     let refinedText = "";
@@ -153,9 +156,15 @@ export async function orchestrateSequentialDebate({
           response: proposalText,
           reasoning: proposerResponse.reasoning || null,
           tokens: proposerResponse.usage.total_tokens,
+          promptTokens: proposerResponse.usage.prompt_tokens,
+          completionTokens: proposerResponse.usage.completion_tokens,
+          costUsd: proposerResponse.usage.costUsd,
           durationMs: proposerResponse._durationMs || 0,
         },
       });
+
+      totalCostUsd += proposerResponse.usage.costUsd;
+      totalTokens += proposerResponse.usage.total_tokens;
 
       proposerStep.status = "done";
       proposerStep.completedAt = new Date().toISOString();
@@ -194,9 +203,15 @@ export async function orchestrateSequentialDebate({
           response: critiqueText,
           reasoning: criticResponse.reasoning || null,
           tokens: criticResponse.usage.total_tokens,
+          promptTokens: criticResponse.usage.prompt_tokens,
+          completionTokens: criticResponse.usage.completion_tokens,
+          costUsd: criticResponse.usage.costUsd,
           durationMs: criticResponse._durationMs || 0,
         },
       });
+
+      totalCostUsd += criticResponse.usage.costUsd;
+      totalTokens += criticResponse.usage.total_tokens;
 
       criticStep.status = "done";
       criticStep.completedAt = new Date().toISOString();
@@ -235,9 +250,15 @@ export async function orchestrateSequentialDebate({
           response: refinedText,
           reasoning: refinerResponse.reasoning || null,
           tokens: refinerResponse.usage.total_tokens,
+          promptTokens: refinerResponse.usage.prompt_tokens,
+          completionTokens: refinerResponse.usage.completion_tokens,
+          costUsd: refinerResponse.usage.costUsd,
           durationMs: refinerResponse._durationMs || 0,
         },
       });
+
+      totalCostUsd += refinerResponse.usage.costUsd;
+      totalTokens += refinerResponse.usage.total_tokens;
 
       refinerStep.status = "done";
       refinerStep.completedAt = new Date().toISOString();
@@ -278,9 +299,15 @@ export async function orchestrateSequentialDebate({
         response: judgeResponse.content,
         reasoning: judgeResponse.reasoning || null,
         tokens: judgeResponse.usage.total_tokens,
+        promptTokens: judgeResponse.usage.prompt_tokens,
+        completionTokens: judgeResponse.usage.completion_tokens,
+        costUsd: judgeResponse.usage.costUsd,
         durationMs: judgeResponse._durationMs || 0,
       },
     });
+
+    totalCostUsd += judgeResponse.usage.costUsd;
+    totalTokens += judgeResponse.usage.total_tokens;
 
     allSteps[judgeIdx].status = "done";
     allSteps[judgeIdx].completedAt = new Date().toISOString();
@@ -292,6 +319,8 @@ export async function orchestrateSequentialDebate({
         status: "DONE",
         report: judgeResponse.content,
         completedAt: new Date(),
+        totalCostUsd,
+        totalTokens,
         progress: JSON.stringify({ currentPhase: "done", steps: allSteps }),
       },
     });

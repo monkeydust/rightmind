@@ -93,6 +93,9 @@ export async function orchestrateManagerWorker({
   ];
 
   try {
+    let totalCostUsd = 0;
+    let totalTokens = 0;
+
     // ───────────────────────────────────────────────────────────────────────
     // PHASE 1: Manager decomposes the challenge
     // ───────────────────────────────────────────────────────────────────────
@@ -148,9 +151,15 @@ export async function orchestrateManagerWorker({
         response: managerResponse!.content,
         reasoning: managerResponse!.reasoning || null,
         tokens: managerResponse!.usage.total_tokens,
+        promptTokens: managerResponse!.usage.prompt_tokens,
+        completionTokens: managerResponse!.usage.completion_tokens,
+        costUsd: managerResponse!.usage.costUsd,
         durationMs: managerResponse!._durationMs || 0,
       },
     });
+
+    totalCostUsd += managerResponse!.usage.costUsd;
+    totalTokens += managerResponse!.usage.total_tokens;
 
     if (!decomposition.sub_tasks || decomposition.sub_tasks.length === 0) {
       throw new Error("Manager produced zero sub-tasks.");
@@ -215,9 +224,15 @@ export async function orchestrateManagerWorker({
             response: workerResponse.content,
             reasoning: workerResponse.reasoning || null,
             tokens: workerResponse.usage.total_tokens,
+            promptTokens: workerResponse.usage.prompt_tokens,
+            completionTokens: workerResponse.usage.completion_tokens,
+            costUsd: workerResponse.usage.costUsd,
             durationMs: workerResponse._durationMs || 0,
           },
         });
+
+        totalCostUsd += workerResponse.usage.costUsd;
+        totalTokens += workerResponse.usage.total_tokens;
 
         // Mark done
         workerSteps[idx].status = "done";
@@ -273,9 +288,15 @@ export async function orchestrateManagerWorker({
         response: judgeResponse.content,
         reasoning: judgeResponse.reasoning || null,
         tokens: judgeResponse.usage.total_tokens,
+        promptTokens: judgeResponse.usage.prompt_tokens,
+        completionTokens: judgeResponse.usage.completion_tokens,
+        costUsd: judgeResponse.usage.costUsd,
         durationMs: judgeResponse._durationMs || 0,
       },
     });
+
+    totalCostUsd += judgeResponse.usage.costUsd;
+    totalTokens += judgeResponse.usage.total_tokens;
 
     fullSteps[judgeIdx].status = "done";
     fullSteps[judgeIdx].completedAt = new Date().toISOString();
@@ -289,6 +310,8 @@ export async function orchestrateManagerWorker({
         status: "DONE",
         report: judgeResponse.content,
         completedAt: new Date(),
+        totalCostUsd,
+        totalTokens,
         progress: JSON.stringify({ currentPhase: "done", steps: fullSteps }),
       },
     });

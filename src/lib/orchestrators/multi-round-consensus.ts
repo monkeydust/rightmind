@@ -106,6 +106,9 @@ export async function orchestrateMultiRoundConsensus({
   allSteps.push(judgeStep);
 
   try {
+    let totalCostUsd = 0;
+    let totalTokens = 0;
+
     // Track each agent's latest output per round
     const roundOutputs: Map<string, string>[] = [];
     // Track per-agent confidence scores (ConfMAD: confidence-modulated belief updates)
@@ -176,9 +179,15 @@ export async function orchestrateMultiRoundConsensus({
             response: response.content,
             reasoning: response.reasoning || null,
             tokens: response.usage.total_tokens,
+            promptTokens: response.usage.prompt_tokens,
+            completionTokens: response.usage.completion_tokens,
+            costUsd: response.usage.costUsd,
             durationMs: response._durationMs || 0,
           },
         });
+
+        totalCostUsd += response.usage.costUsd;
+        totalTokens += response.usage.total_tokens;
 
         // Extract confidence for rounds 2+ (they return JSON)
         if (round > 1) {
@@ -273,9 +282,15 @@ export async function orchestrateMultiRoundConsensus({
         response: judgeResponse.content,
         reasoning: judgeResponse.reasoning || null,
         tokens: judgeResponse.usage.total_tokens,
+        promptTokens: judgeResponse.usage.prompt_tokens,
+        completionTokens: judgeResponse.usage.completion_tokens,
+        costUsd: judgeResponse.usage.costUsd,
         durationMs: judgeResponse._durationMs || 0,
       },
     });
+
+    totalCostUsd += judgeResponse.usage.costUsd;
+    totalTokens += judgeResponse.usage.total_tokens;
 
     allSteps[judgeIdx].status = "done";
     allSteps[judgeIdx].completedAt = new Date().toISOString();
@@ -287,6 +302,8 @@ export async function orchestrateMultiRoundConsensus({
         status: "DONE",
         report: judgeResponse.content,
         completedAt: new Date(),
+        totalCostUsd,
+        totalTokens,
         progress: JSON.stringify({ currentPhase: "done", steps: allSteps }),
       },
     });

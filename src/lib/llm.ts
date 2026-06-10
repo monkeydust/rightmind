@@ -137,6 +137,7 @@ export async function callModel(
       prompt_tokens: data.usage?.prompt_tokens ?? 0,
       completion_tokens: data.usage?.completion_tokens ?? 0,
       total_tokens: data.usage?.total_tokens ?? 0,
+      costUsd: typeof data.usage?.cost === "number" ? data.usage.cost : 0,
     },
     _durationMs: durationMs,
   };

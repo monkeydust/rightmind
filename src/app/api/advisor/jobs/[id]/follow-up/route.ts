@@ -113,6 +113,7 @@ export async function POST(
         response: res.content,
         model: res.model,
         tokens: res.usage.total_tokens,
+        costUsd: res.usage.costUsd,
         durationMs: res._durationMs,
       },
       select: {
@@ -122,8 +123,18 @@ export async function POST(
         response: true,
         model: true,
         tokens: true,
+        costUsd: true,
         durationMs: true,
         createdAt: true,
+      },
+    });
+
+    // Update job-level cost totals
+    await prisma.advisorJob.update({
+      where: { id },
+      data: {
+        totalCostUsd: { increment: res.usage.costUsd },
+        totalTokens: { increment: res.usage.total_tokens },
       },
     });
 

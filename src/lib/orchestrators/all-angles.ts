@@ -98,6 +98,9 @@ export async function orchestrateAllAngles({
   ];
 
   try {
+    let totalCostUsd = 0;
+    let totalTokens = 0;
+
     await updateProgress(jobId, "launching", steps);
 
     // ───────────────────────────────────────────────────────────────────────
@@ -241,9 +244,23 @@ export async function orchestrateAllAngles({
         response: judgeResponse.content,
         reasoning: judgeResponse.reasoning || null,
         tokens: judgeResponse.usage.total_tokens,
+        promptTokens: judgeResponse.usage.prompt_tokens,
+        completionTokens: judgeResponse.usage.completion_tokens,
+        costUsd: judgeResponse.usage.costUsd,
         durationMs: judgeResponse._durationMs || 0,
       },
     });
+
+    totalCostUsd += judgeResponse.usage.costUsd;
+    totalTokens += judgeResponse.usage.total_tokens;
+
+    // Sum child job costs from the DB
+    const childCosts = await prisma.advisorJob.aggregate({
+      where: { id: { in: childJobIds } },
+      _sum: { totalCostUsd: true, totalTokens: true },
+    });
+    totalCostUsd += childCosts._sum.totalCostUsd ?? 0;
+    totalTokens += childCosts._sum.totalTokens ?? 0;
 
     steps[metaIdx].status = "done";
     steps[metaIdx].completedAt = new Date().toISOString();
@@ -264,6 +281,8 @@ export async function orchestrateAllAngles({
         status: "DONE",
         report: reportPayload,
         completedAt: new Date(),
+        totalCostUsd,
+        totalTokens,
         progress: JSON.stringify({ currentPhase: "done", steps }),
       },
     });

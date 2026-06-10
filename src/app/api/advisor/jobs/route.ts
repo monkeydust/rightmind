@@ -25,6 +25,7 @@ export async function GET() {
         challenge: true,
         strategyId: true,
         status: true,
+        totalCostUsd: true,
         createdAt: true,
         completedAt: true,
       },
