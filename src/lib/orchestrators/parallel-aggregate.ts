@@ -172,7 +172,7 @@ export async function orchestrateParallelAggregate({
         { role: "system", content: judgePrompt },
         { role: "user", content: await buildUserContent(judgeUserMessage, file) },
       ],
-      { temperature: 0.5, max_tokens: 8192, ...reasoningOpts(includeReasoning) }
+      { temperature: 0.5, max_tokens: 16384, ...reasoningOpts(includeReasoning) }
     );
 
     await prisma.agentResponse.create({

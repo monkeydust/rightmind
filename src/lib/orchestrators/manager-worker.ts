@@ -119,7 +119,7 @@ export async function orchestrateManagerWorker({
       managerResponse = await callModel(
         managerModel,
         managerMessages,
-        { json: true, temperature: 0.4, max_tokens: 8192, ...reasoningOpts(includeReasoning) }
+        { json: true, temperature: 0.4, max_tokens: 16384, ...reasoningOpts(includeReasoning) }
       );
 
       try {
@@ -273,7 +273,7 @@ export async function orchestrateManagerWorker({
         { role: "system", content: judgePrompt },
         { role: "user", content: await buildUserContent(judgeUserMessage, file) },
       ],
-      { temperature: 0.5, max_tokens: 8192, ...reasoningOpts(includeReasoning) }
+      { temperature: 0.5, max_tokens: 16384, ...reasoningOpts(includeReasoning) }
     );
 
     // Save the judge response

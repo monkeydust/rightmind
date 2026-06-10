@@ -268,7 +268,7 @@ export async function orchestrateMultiRoundConsensus({
         { role: "system", content: judgePrompt },
         { role: "user", content: await buildUserContent(judgeUserMsg, file) },
       ],
-      { temperature: 0.5, max_tokens: 8192, ...reasoningOpts(includeReasoning) }
+      { temperature: 0.5, max_tokens: 16384, ...reasoningOpts(includeReasoning) }
     );
 
     await prisma.agentResponse.create({
