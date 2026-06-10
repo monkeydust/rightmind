@@ -10,7 +10,7 @@
  */
 
 import { prisma } from "@/lib/db";
-import { callModel } from "@/lib/llm";
+import { callModel, parseJSON } from "@/lib/llm";
 import { isJobCancelled, clearCancellation } from "@/lib/cancellation";
 import { onJobComplete, onJobFailed } from "@/lib/job-complete";
 import { buildUserContent, resolveAgentModel } from "@/lib/file-content";
@@ -192,7 +192,7 @@ export async function orchestrateMultiRoundConsensus({
         // Extract confidence for rounds 2+ (they return JSON)
         if (round > 1) {
           try {
-            const parsed: RoundTableResponse = JSON.parse(response.content);
+            const parsed: RoundTableResponse = parseJSON(response.content);
             const conf = parsed.confidence ?? 0.5;
             confidences.push(conf);
             confidenceMap.set(agent.role, conf);

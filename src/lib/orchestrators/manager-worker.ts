@@ -7,7 +7,7 @@
  */
 
 import { prisma } from "@/lib/db";
-import { callModel } from "@/lib/llm";
+import { callModel, parseJSON } from "@/lib/llm";
 import { isJobCancelled, clearCancellation } from "@/lib/cancellation";
 import { onJobComplete, onJobFailed } from "@/lib/job-complete";
 import { buildUserContent, resolveAgentModel } from "@/lib/file-content";
@@ -123,7 +123,7 @@ export async function orchestrateManagerWorker({
       );
 
       try {
-        decomposition = JSON.parse(managerResponse.content);
+        decomposition = parseJSON(managerResponse.content);
         break; // Success — exit retry loop
       } catch {
         console.warn(`[Job ${jobId}] Manager JSON parse failed (attempt ${attempt + 1}/2). Response length: ${managerResponse.content.length} chars`);

@@ -7,7 +7,7 @@
  */
 
 import { prisma } from "@/lib/db";
-import { callModel } from "@/lib/llm";
+import { callModel, parseJSON } from "@/lib/llm";
 import { isJobCancelled, clearCancellation } from "@/lib/cancellation";
 import { onJobComplete, onJobFailed } from "@/lib/job-complete";
 import { buildUserContent, resolveAgentModel } from "@/lib/file-content";
@@ -272,7 +272,7 @@ export async function orchestrateAllAngles({
     const reportPayload = JSON.stringify({
       _type: "all-angles",
       childJobIds: childJobIds,
-      metaSynthesis: JSON.parse(judgeResponse.content),
+      metaSynthesis: parseJSON(judgeResponse.content),
     });
 
     await prisma.advisorJob.update({

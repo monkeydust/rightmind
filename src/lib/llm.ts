@@ -10,6 +10,19 @@ import type { LLMMessage, LLMResponse } from "./types";
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 /**
+ * Parse JSON from an LLM response, stripping markdown code fences if present.
+ * Models sometimes return ```json ... ``` even with response_format: json_object.
+ */
+export function parseJSON<T = unknown>(raw: string): T {
+  let cleaned = raw.trim();
+  // Strip ```json ... ``` or ``` ... ``` wrappers
+  if (cleaned.startsWith("```")) {
+    cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?```\s*$/, "");
+  }
+  return JSON.parse(cleaned);
+}
+
+/**
  * When a file is attached, swap text-only models (DeepSeek R1) for
  * a vision-capable alternative so every agent can see the document.
  */
