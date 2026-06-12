@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import AllAnglesVisualView from "./AllAnglesVisualView";
 
 /* ─── Animated dots for loading states ──────────────────────── */
 function AnimatedDots() {
@@ -519,6 +520,7 @@ export default function JobDetailPage() {
   const [emailNotify, setEmailNotify] = useState(false);
   const [elapsedNow, setElapsedNow] = useState(Date.now());
   const [expandedDimensions, setExpandedDimensions] = useState<Set<number>>(new Set());
+  const [allAnglesView, setAllAnglesView] = useState<"visual" | "classic">("visual");
 
   // Follow-up state
   const [followUpInput, setFollowUpInput] = useState("");
@@ -1230,29 +1232,69 @@ export default function JobDetailPage() {
           const meta = allAnglesData.metaSynthesis;
           return (
             <div style={{ borderTop: "1px solid var(--rule)", paddingTop: "24px" }}>
-              {/* Report header with reasoning toggle */}
-              <div className="flex items-center justify-between" style={{ marginBottom: "16px" }}>
+              {/* Report header with view toggle + reasoning toggle */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
                 <div className="section-label" style={{ marginBottom: 0 }}>🔮 All Angles Report</div>
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    fontSize: "12px",
-                    color: showReasoning ? "var(--teal)" : "var(--grey-light)",
-                    cursor: "pointer",
-                    userSelect: "none",
-                    transition: "color 0.2s",
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={showReasoning}
-                    onChange={(e) => setShowReasoning(e.target.checked)}
-                    style={{ width: "13px", height: "13px", accentColor: "var(--teal)", cursor: "pointer" }}
-                  />
-                  Show reasoning
-                </label>
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  {/* View toggle */}
+                  <div style={{
+                    display: "inline-flex",
+                    border: "1px solid var(--rule)",
+                    borderRadius: "6px",
+                    overflow: "hidden",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                  }}>
+                    <button
+                      onClick={() => setAllAnglesView("visual")}
+                      style={{
+                        padding: "5px 12px",
+                        border: "none",
+                        cursor: "pointer",
+                        background: allAnglesView === "visual" ? "var(--teal)" : "var(--white)",
+                        color: allAnglesView === "visual" ? "#fff" : "var(--grey)",
+                        transition: "all 0.2s",
+                      }}
+                    >
+                      📊 Visual
+                    </button>
+                    <button
+                      onClick={() => setAllAnglesView("classic")}
+                      style={{
+                        padding: "5px 12px",
+                        border: "none",
+                        borderLeft: "1px solid var(--rule)",
+                        cursor: "pointer",
+                        background: allAnglesView === "classic" ? "var(--teal)" : "var(--white)",
+                        color: allAnglesView === "classic" ? "#fff" : "var(--grey)",
+                        transition: "all 0.2s",
+                      }}
+                    >
+                      📋 Classic
+                    </button>
+                  </div>
+                  {/* Reasoning toggle */}
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      fontSize: "12px",
+                      color: showReasoning ? "var(--teal)" : "var(--grey-light)",
+                      cursor: "pointer",
+                      userSelect: "none",
+                      transition: "color 0.2s",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={showReasoning}
+                      onChange={(e) => setShowReasoning(e.target.checked)}
+                      style={{ width: "13px", height: "13px", accentColor: "var(--teal)", cursor: "pointer" }}
+                    />
+                    Show reasoning
+                  </label>
+                </div>
               </div>
 
               {/* Export action bar */}
@@ -1269,6 +1311,13 @@ export default function JobDetailPage() {
               {/* Reasoning traces */}
               {showReasoning && <ReasoningPanel traces={reasoningTraces} loaded={reasoningLoaded} expandedTraces={expandedTraces} toggleTrace={toggleTrace} />}
 
+              {/* ── Visual View ────────────────────────────────── */}
+              {allAnglesView === "visual" && (
+                <AllAnglesVisualView meta={meta} />
+              )}
+
+              {/* ── Classic View ────────────────────────────────── */}
+              {allAnglesView === "classic" && <>
               {/* ── Alignment Score ──────────────────────────────── */}
               <div style={{
                 display: "flex",
@@ -1510,6 +1559,7 @@ export default function JobDetailPage() {
                   {meta.meta_recommendation || ""}
                 </ReactMarkdown>
               </div>
+              </>}
 
               {/* ── Child Strategy Reports (drill-down) ──────────── */}
               {allAnglesData.childJobIds && allAnglesData.childJobIds.length > 0 && (
