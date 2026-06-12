@@ -111,6 +111,27 @@ function truncate(s: string, max: number): string {
   return s.slice(0, max - 1) + "\u2026";
 }
 
+/** Split text into lines of roughly `maxPerLine` characters, breaking on word boundaries */
+function wrapText(s: string, maxPerLine: number): string[] {
+  const words = s.split(/\s+/);
+  const lines: string[] = [];
+  let current = "";
+  for (const word of words) {
+    if (current && (current.length + 1 + word.length) > maxPerLine) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = current ? current + " " + word : word;
+    }
+  }
+  if (current) lines.push(current);
+  // Max 3 lines, truncate last if needed
+  if (lines.length > 3) {
+    return [...lines.slice(0, 2), truncate(lines.slice(2).join(" "), maxPerLine)];
+  }
+  return lines;
+}
+
 /** Convert polar (angle in radians, radius 0..1) to SVG x,y */
 function polar(
   angleRad: number,
@@ -246,9 +267,9 @@ function StrategyRadarChart({ meta }: { meta: MetaSynthesis }) {
   const n = dims.length;
   if (n < 3) return null; // need at least 3 spokes
 
-  const CX = 150;
-  const CY = 150;
-  const MAX_R = 120;
+  const CX = 200;
+  const CY = 200;
+  const MAX_R = 110;
   const angleStep = (2 * Math.PI) / n;
 
   // Build polygon points for each strategy
@@ -280,7 +301,7 @@ function StrategyRadarChart({ meta }: { meta: MetaSynthesis }) {
           alignItems: "center",
         }}
       >
-        <svg viewBox="0 0 300 300" style={{ width: "100%", maxWidth: "380px" }}>
+        <svg viewBox="0 0 400 400" style={{ width: "100%", maxWidth: "440px" }}>
           {/* Guide circles */}
           {guideRadii.map((r) => (
             <circle
@@ -332,31 +353,47 @@ function StrategyRadarChart({ meta }: { meta: MetaSynthesis }) {
 
           {/* Spoke labels */}
           {dims.map((dim, i) => {
-            const [lx, ly] = polar(i * angleStep, 1.18, CX, CY, MAX_R);
+            const [lx, ly] = polar(i * angleStep, 1.22, CX, CY, MAX_R);
             // Determine text-anchor based on position
             const angle = i * angleStep - Math.PI / 2;
             const cosA = Math.cos(angle);
+            const sinA = Math.sin(angle);
             const anchor =
               Math.abs(cosA) < 0.15
                 ? "middle"
                 : cosA > 0
                   ? "start"
                   : "end";
+            const lines = wrapText(dim.question, 22);
+            // Offset baseline for multi-line: center vertically
+            const lineHeight = 10;
+            const yOffset = -((lines.length - 1) * lineHeight) / 2;
+            // Extra nudge away from chart for top/bottom labels
+            const nudgeX = cosA > 0.15 ? 4 : cosA < -0.15 ? -4 : 0;
+            const nudgeY = sinA > 0.15 ? 6 : sinA < -0.15 ? -6 : 0;
             return (
               <text
                 key={i}
-                x={lx}
-                y={ly}
+                x={lx + nudgeX}
+                y={ly + nudgeY + yOffset}
                 textAnchor={anchor}
                 dominantBaseline="central"
                 style={{
-                  fontSize: "8px",
+                  fontSize: "9px",
                   fill: "var(--grey)",
                   fontFamily: "var(--font-display)",
                   fontWeight: 600,
                 }}
               >
-                {truncate(dim.question, 28)}
+                {lines.map((line, li) => (
+                  <tspan
+                    key={li}
+                    x={lx + nudgeX}
+                    dy={li === 0 ? 0 : lineHeight}
+                  >
+                    {line}
+                  </tspan>
+                ))}
               </text>
             );
           })}
