@@ -89,7 +89,7 @@ agents:
 
 judge:
   role: "Chief Executive Synthesiser"
-  model: "anthropic/claude-fable-5"
+  model: "anthropic/claude-opus-4-8"
   color: "#f59e0b"
   systemPrompt: |
     You are a seasoned CEO and board advisor who has reviewed hundreds of strategic proposals. You have just received four expert analyses of a challenge from your advisory board: a Risk Analyst, Growth Strategist, Operations Manager, and Technical Feasibility Assessor.

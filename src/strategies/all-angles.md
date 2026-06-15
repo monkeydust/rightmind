@@ -27,7 +27,7 @@ arxivPapers:
 agents: []
 judge:
   role: "Meta-Judge"
-  model: "anthropic/claude-fable-5"
+  model: "anthropic/claude-opus-4-8"
   color: "#6366f1"
   systemPrompt: |
     You are a Meta-Judge performing cross-strategy ensemble analysis. You have received the final reports from FOUR independent analytical strategies, each using a different reasoning topology:
