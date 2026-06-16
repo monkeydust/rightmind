@@ -522,6 +522,8 @@ export default function JobDetailPage() {
 
   // Follow-up state
   const [followUpInput, setFollowUpInput] = useState("");
+  const [followUpFile, setFollowUpFile] = useState<{ name: string; data: string; mimeType: string; size: number } | null>(null);
+  const followUpFileRef = useRef<HTMLInputElement>(null);
   const [followUpLoading, setFollowUpLoading] = useState(false);
   const [followUpError, setFollowUpError] = useState<string | null>(null);
 
@@ -875,6 +877,25 @@ export default function JobDetailPage() {
         </div>
       )}
 
+      {/* Jump to analysis */}
+      {job.status === "DONE" && job.report && (
+        <button
+          onClick={() => document.getElementById("analysis-section")?.scrollIntoView({ behavior: "smooth" })}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: "6px",
+            marginBottom: "20px", padding: "6px 14px",
+            fontSize: "12px", fontWeight: 600, fontFamily: "var(--font-ui)",
+            color: "var(--teal)", background: "rgba(13,118,128,0.06)",
+            border: "1px solid rgba(13,118,128,0.2)", borderRadius: "16px",
+            cursor: "pointer", transition: "all 0.2s",
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(13,118,128,0.12)"; e.currentTarget.style.borderColor = "var(--teal)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(13,118,128,0.06)"; e.currentTarget.style.borderColor = "rgba(13,118,128,0.2)"; }}
+        >
+          ↓ Jump to analysis
+        </button>
+      )}
+
       {/* Status badge */}
       <div style={{ marginBottom: "24px" }}>
         <span
@@ -1216,6 +1237,7 @@ export default function JobDetailPage() {
       )}
 
       {/* Final report */}
+      <div id="analysis-section" />
       {job.status === "DONE" && job.report && (() => {
         // Detect All Angles structured report
         const isAllAngles = job.strategyId === "all-angles";
@@ -1675,6 +1697,69 @@ export default function JobDetailPage() {
               }}
             />
 
+            {/* Follow-up file upload */}
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "8px" }}>
+              {!followUpFile ? (
+                <>
+                  <input
+                    ref={followUpFileRef}
+                    type="file"
+                    accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.txt,.csv,.md"
+                    style={{ display: "none" }}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const MAX = 10 * 1024 * 1024;
+                      const TYPES = ["application/pdf","image/png","image/jpeg","image/webp","image/gif","text/plain","text/csv","text/markdown"];
+                      if (file.size > MAX) { alert(`File too large (${(file.size/1024/1024).toFixed(1)}MB). Max 10MB.`); return; }
+                      if (!TYPES.includes(file.type)) { alert(`Unsupported type: ${file.type}`); return; }
+                      const reader = new FileReader();
+                      reader.onload = () => setFollowUpFile({ name: file.name, data: reader.result as string, mimeType: file.type, size: file.size });
+                      reader.readAsDataURL(file);
+                      e.target.value = "";
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => followUpFileRef.current?.click()}
+                    disabled={followUpLoading}
+                    style={{
+                      padding: "4px 10px", fontSize: "11px", fontFamily: "var(--font-ui)",
+                      fontWeight: 600, color: "var(--grey)",
+                      background: "transparent", border: "1px solid var(--rule)",
+                      borderRadius: "14px", cursor: followUpLoading ? "not-allowed" : "pointer",
+                      transition: "all 0.2s", opacity: followUpLoading ? 0.5 : 1,
+                    }}
+                    onMouseEnter={(e) => { if (!followUpLoading) { e.currentTarget.style.borderColor = "var(--teal)"; e.currentTarget.style.color = "var(--teal)"; } }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--rule)"; e.currentTarget.style.color = "var(--grey)"; }}
+                  >
+                    📎 Attach document
+                  </button>
+                </>
+              ) : (
+                <div style={{
+                  display: "flex", alignItems: "center", gap: "6px",
+                  padding: "4px 10px", fontSize: "11px",
+                  background: "rgba(13,118,128,0.06)", border: "1px solid rgba(13,118,128,0.15)",
+                  borderRadius: "14px", color: "var(--teal)", fontWeight: 600,
+                }}>
+                  {followUpFile.mimeType === "application/pdf" ? "📄" : followUpFile.mimeType.startsWith("image/") ? "🖼️" : "📝"}
+                  <span>{followUpFile.name}</span>
+                  <span style={{ fontSize: "10px", color: "var(--grey-light)", fontWeight: 400 }}>
+                    {(followUpFile.size / 1024).toFixed(0)}KB
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setFollowUpFile(null)}
+                    style={{
+                      background: "none", border: "none", cursor: "pointer",
+                      color: "var(--grey-light)", fontSize: "14px", padding: "0 2px", lineHeight: 1,
+                    }}
+                  >×</button>
+                </div>
+              )}
+            </div>
+
             {/* Refine error */}
             {fuRefineError && (
               <p style={{ fontSize: "12px", color: "var(--claret)", marginTop: "6px" }}>{fuRefineError}</p>
@@ -1837,7 +1922,14 @@ export default function JobDetailPage() {
                     const res = await fetch(`/api/advisor/jobs/${jobId}/follow-up`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ prompt: followUpInput.trim() }),
+                      body: JSON.stringify({
+                        prompt: followUpInput.trim(),
+                        ...(followUpFile ? {
+                          fileData: followUpFile.data,
+                          fileName: followUpFile.name,
+                          mimeType: followUpFile.mimeType,
+                        } : {}),
+                      }),
                     });
                     const data = await res.json();
                     if (!res.ok) {
@@ -1848,6 +1940,7 @@ export default function JobDetailPage() {
                         followUps: [...(prev.followUps || []), data],
                       }));
                       setFollowUpInput("");
+                      setFollowUpFile(null);
                     }
                   } catch {
                     setFollowUpError("Network error");

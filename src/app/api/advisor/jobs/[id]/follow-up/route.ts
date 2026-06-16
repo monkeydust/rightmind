@@ -62,7 +62,7 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { prompt } = body;
+    const { prompt, fileData, fileName, mimeType } = body;
 
     if (!prompt?.trim()) {
       return Response.json(
@@ -91,8 +91,23 @@ export async function POST(
       messages.push({ role: "assistant", content: followUp.response });
     }
 
+    // Build the new follow-up prompt, including file content if uploaded
+    let userMessage = prompt.trim();
+    if (fileData && fileName && mimeType) {
+      if (mimeType === "application/pdf" || mimeType.startsWith("text/")) {
+        // Extract text from base64 data URL
+        const base64Data = fileData.split(",")[1] || fileData;
+        const decoded = Buffer.from(base64Data, "base64").toString("utf-8");
+        userMessage += `\n\n--- Attached document: ${fileName} ---\n${decoded}`;
+      } else if (mimeType.startsWith("image/")) {
+        // For images, pass as a vision-compatible content block
+        userMessage += `\n\n[Attached image: ${fileName}]`;
+        // Note: OpenRouter vision support requires multipart content - for now, mention the file
+      }
+    }
+
     // Add the new follow-up prompt
-    messages.push({ role: "user", content: prompt.trim() });
+    messages.push({ role: "user", content: userMessage });
 
     // Call the model
     const res = await callModel(FOLLOW_UP_MODEL, messages, {
