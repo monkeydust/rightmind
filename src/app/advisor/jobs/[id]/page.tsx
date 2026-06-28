@@ -896,6 +896,25 @@ export default function JobDetailPage() {
         </button>
       )}
 
+      {/* Jump to progress (running) */}
+      {(job.status === "RUNNING" || job.status === "PENDING") && (
+        <button
+          onClick={() => document.getElementById("progress-section")?.scrollIntoView({ behavior: "smooth" })}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: "6px",
+            marginBottom: "20px", padding: "6px 14px",
+            fontSize: "12px", fontWeight: 600, fontFamily: "var(--font-ui)",
+            color: "var(--teal)", background: "rgba(13,118,128,0.06)",
+            border: "1px solid rgba(13,118,128,0.2)", borderRadius: "16px",
+            cursor: "pointer", transition: "all 0.2s",
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(13,118,128,0.12)"; e.currentTarget.style.borderColor = "var(--teal)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(13,118,128,0.06)"; e.currentTarget.style.borderColor = "rgba(13,118,128,0.2)"; }}
+        >
+          ↓ Jump to progress
+        </button>
+      )}
+
       {/* Status badge */}
       <div style={{ marginBottom: "24px" }}>
         <span
@@ -1198,6 +1217,7 @@ export default function JobDetailPage() {
 
           {/* Pulse animation */}
           <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
+          <div id="progress-section" />
         </div>
       )}
 
