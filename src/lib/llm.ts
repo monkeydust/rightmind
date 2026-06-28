@@ -23,12 +23,24 @@ export function parseJSON<T = unknown>(raw: string): T {
   try {
     return JSON.parse(cleaned);
   } catch (firstError) {
-    // Attempt truncated JSON recovery: close any open strings, arrays, objects
+    // ── Pass 1: structural repairs ──────────────────────────────
     let repaired = cleaned;
+
+    // Fix missing colon between key and value: "key""value" → "key": "value"
+    // Pattern: a closing quote, optional whitespace, then opening quote of value
+    // (not preceded by colon, comma, brace, or bracket)
+    repaired = repaired.replace(/(?<=\w)"(\s*)"(?![:,}\]])/g, '": "');
+
+    try {
+      return JSON.parse(repaired);
+    } catch {
+      // Continue to pass 2
+    }
+
+    // ── Pass 2: truncation recovery ────────────────────────────
     // If cut mid-string, close the string
     const quotes = (repaired.match(/"/g) || []).length;
     if (quotes % 2 !== 0) {
-      // Trim back to last complete-looking content, then close the string
       repaired = repaired.replace(/[^"]*$/, '"');
     }
     // Close any open brackets/braces
@@ -49,7 +61,7 @@ export function parseJSON<T = unknown>(raw: string): T {
     repaired += opens.reverse().join("");
 
     try {
-      console.warn(`[parseJSON] Recovered truncated JSON (${raw.length} chars)`);
+      console.warn(`[parseJSON] Recovered malformed JSON (${raw.length} chars)`);
       return JSON.parse(repaired);
     } catch {
       // Recovery failed, throw original error
