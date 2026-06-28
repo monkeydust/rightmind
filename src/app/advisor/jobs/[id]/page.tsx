@@ -845,38 +845,6 @@ export default function JobDetailPage() {
         </p>
       </div>
 
-      {/* Original challenge */}
-      {job.challenge && (
-        <div style={{ marginBottom: "24px" }}>
-          <div className="section-label">Your challenge</div>
-          <blockquote
-            style={{
-              margin: 0,
-              padding: "12px 16px",
-              borderLeft: "3px solid var(--claret)",
-              background: "var(--white)",
-              fontFamily: "var(--font-text)",
-              fontSize: "15px",
-              lineHeight: 1.6,
-              color: "var(--charcoal)",
-              fontStyle: "italic",
-            }}
-          >
-            {job.challenge}
-          </blockquote>
-          {job.strategyId && (
-            <p style={{ fontSize: "12px", color: "var(--grey-light)", marginTop: "6px" }}>
-              Strategy: {job.strategyId}
-              {job.fileName && (
-                <span style={{ marginLeft: "12px", padding: "2px 8px", background: "rgba(13,118,128,0.06)", border: "1px solid rgba(13,118,128,0.15)", borderRadius: "10px", fontSize: "11px", color: "var(--teal)" }}>
-                  📎 {job.fileName}
-                </span>
-              )}
-            </p>
-          )}
-        </div>
-      )}
-
       {/* Jump to analysis */}
       {job.status === "DONE" && job.report && (
         <button
@@ -914,6 +882,39 @@ export default function JobDetailPage() {
           ↓ Jump to progress
         </button>
       )}
+
+      {/* Original challenge */}
+      {job.challenge && (
+        <div style={{ marginBottom: "24px" }}>
+          <div className="section-label">Your challenge</div>
+          <blockquote
+            style={{
+              margin: 0,
+              padding: "12px 16px",
+              borderLeft: "3px solid var(--claret)",
+              background: "var(--white)",
+              fontFamily: "var(--font-text)",
+              fontSize: "15px",
+              lineHeight: 1.6,
+              color: "var(--charcoal)",
+              fontStyle: "italic",
+            }}
+          >
+            {job.challenge}
+          </blockquote>
+          {job.strategyId && (
+            <p style={{ fontSize: "12px", color: "var(--grey-light)", marginTop: "6px" }}>
+              Strategy: {job.strategyId}
+              {job.fileName && (
+                <span style={{ marginLeft: "12px", padding: "2px 8px", background: "rgba(13,118,128,0.06)", border: "1px solid rgba(13,118,128,0.15)", borderRadius: "10px", fontSize: "11px", color: "var(--teal)" }}>
+                  📎 {job.fileName}
+                </span>
+              )}
+            </p>
+          )}
+        </div>
+      )}
+
 
       {/* Status badge */}
       <div style={{ marginBottom: "24px" }}>
