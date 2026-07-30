@@ -1,10 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { StrategyFlowVisualizer } from "@/components/flow/StrategyFlowVisualizer";
+import { AgentInspector } from "@/components/flow/AgentInspector";
+import type { StepInput } from "@/components/flow/strategyGraphLayout";
 
 /* ─── Animated dots for loading states ──────────────────────── */
 function AnimatedDots() {
@@ -497,6 +500,53 @@ Please review this analysis. I'd like your perspective on:
   );
 }
 
+/* ─── Progress view toggle (Graph / List) ────────────────────────────────── */
+
+function ViewToggle({ view, onChange }: {
+  view: "graph" | "list";
+  onChange: (v: "graph" | "list") => void;
+}) {
+  const base: React.CSSProperties = {
+    padding: "3px 10px",
+    fontSize: "11px",
+    fontWeight: 600,
+    fontFamily: "var(--font-ui)",
+    background: "none",
+    borderTopWidth: "1px",
+    borderBottomWidth: "1px",
+    borderLeftWidth: "1px",
+    borderRightWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "var(--rule)",
+    color: "var(--grey-light)",
+    cursor: "pointer",
+    textTransform: "uppercase",
+    letterSpacing: "0.05em",
+    transition: "all 0.15s",
+  };
+  const active: React.CSSProperties = {
+    ...base,
+    borderColor: "var(--teal)",
+    color: "var(--teal)",
+  };
+  return (
+    <div style={{ display: "inline-flex" }}>
+      <button
+        style={view === "graph" ? active : { ...base, borderRightWidth: "0" }}
+        onClick={() => onChange("graph")}
+      >
+        ◉ Graph
+      </button>
+      <button
+        style={view === "list" ? { ...active, borderLeftWidth: "0" } : base}
+        onClick={() => onChange("list")}
+      >
+        ☰ List
+      </button>
+    </div>
+  );
+}
+
 export default function JobDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -519,6 +569,10 @@ export default function JobDetailPage() {
   const [emailNotify, setEmailNotify] = useState(false);
   const [elapsedNow, setElapsedNow] = useState(Date.now());
   const [expandedDimensions, setExpandedDimensions] = useState<Set<number>>(new Set());
+
+  // Flow visualizer state
+  const [progressView, setProgressView] = useState<"graph" | "list">("graph");
+  const [inspected, setInspected] = useState<{ step: StepInput; color: string } | null>(null);
 
   // Follow-up state
   const [followUpInput, setFollowUpInput] = useState("");
@@ -817,6 +871,18 @@ export default function JobDetailPage() {
   const steps = job.progress?.steps ?? [];
   const phase = job.progress?.currentPhase ?? "";
 
+  // For All Angles: extract child job ids from the structured report so strategy
+  // nodes can link to their child job pages once complete.
+  const childJobIds = useMemo<string[]>(() => {
+    if (job.strategyId !== "all-angles" || !job.report) return [];
+    try {
+      const parsed = JSON.parse(job.report) as AllAnglesReport;
+      return parsed.childJobIds ?? [];
+    } catch {
+      return [];
+    }
+  }, [job.strategyId, job.report]);
+
   return (
     <div className="page">
       {/* Back */}
@@ -926,7 +992,8 @@ export default function JobDetailPage() {
             textTransform: "uppercase",
             letterSpacing: "0.05em",
             padding: "3px 10px",
-            border: "1px solid",
+            borderWidth: "1px",
+            borderStyle: "solid",
             borderColor:
               job.status === "DONE"
                 ? "var(--teal)"
@@ -1058,7 +1125,10 @@ export default function JobDetailPage() {
       {/* Progress steps */}
       {steps.length > 0 && (
         <div className="mb-24">
-          <div className="section-label">Progress</div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "4px" }}>
+            <div className="section-label">Progress</div>
+            <ViewToggle view={progressView} onChange={setProgressView} />
+          </div>
 
           {/* Phase & round indicator */}
           {(job.status === "RUNNING" || job.status === "PENDING") && (
@@ -1098,7 +1168,17 @@ export default function JobDetailPage() {
             </div>
           )}
 
-          {/* Step list */}
+          {/* Graph / list view */}
+          {progressView === "graph" ? (
+            <StrategyFlowVisualizer
+              strategyId={job.strategyId || ""}
+              steps={steps}
+              status={job.status}
+              childJobIds={childJobIds}
+              onNodeClick={(step, color) => setInspected({ step, color })}
+              onStrategyNodeClick={(childJobId) => router.push(`/advisor/jobs/${childJobId}`)}
+            />
+          ) : (
           <div style={{
             border: "1px solid var(--rule)",
             background: "var(--white)",
@@ -1196,6 +1276,7 @@ export default function JobDetailPage() {
               );
             })}
           </div>
+          )}
 
           {/* Email notification indicator */}
           {emailNotify && (job.status === "RUNNING" || job.status === "PENDING") && (
@@ -1851,7 +1932,8 @@ export default function JobDetailPage() {
                                   onClick={() => toggleFuOption(q.id, opt.toLowerCase())}
                                   style={{
                                     padding: "3px 14px", fontSize: "12px", fontFamily: "var(--font-text)",
-                                    border: "1px solid",
+                                    borderWidth: "1px",
+                                    borderStyle: "solid",
                                     borderColor: ans?.selected.includes(opt.toLowerCase()) ? "var(--teal)" : "var(--rule)",
                                     borderRadius: "14px",
                                     background: ans?.selected.includes(opt.toLowerCase()) ? "rgba(0,128,128,0.08)" : "transparent",
@@ -1868,7 +1950,8 @@ export default function JobDetailPage() {
                                 onClick={() => toggleFuOption(q.id, opt, q.multiSelect)}
                                 style={{
                                   padding: "3px 10px", fontSize: "11px", fontFamily: "var(--font-text)",
-                                  border: "1px solid",
+                                  borderWidth: "1px",
+                                  borderStyle: "solid",
                                   borderColor: ans?.selected.includes(opt) ? "var(--teal)" : "var(--rule)",
                                   borderRadius: "14px",
                                   background: ans?.selected.includes(opt) ? "rgba(0,128,128,0.08)" : "transparent",
@@ -2007,6 +2090,17 @@ export default function JobDetailPage() {
             ← Submit another challenge
           </Link>
         </div>
+      )}
+
+      {/* Agent response inspector (flow visualizer) */}
+      {inspected && (
+        <AgentInspector
+          jobId={jobId}
+          step={inspected.step}
+          color={inspected.color}
+          strategyId={job.strategyId || ""}
+          onClose={() => setInspected(null)}
+        />
       )}
     </div>
   );

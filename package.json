@@ -12,6 +12,7 @@
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.2",
     "@prisma/client": "^6.19.3",
+    "@xyflow/react": "^12.11.1",
     "dotenv": "^17.4.2",
     "gray-matter": "^4.0.3",
     "marked": "^18.0.4",

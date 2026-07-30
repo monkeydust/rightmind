@@ -1,0 +1,344 @@
+/**
+ * Styles for the ReactFlow live execution visualizer.
+ *
+ * Animations (node glow, edge flow) + ReactFlow chrome removal so the canvas
+ * blends into the FT-style page. Uses the design tokens from globals.css.
+ */
+
+/* ── Canvas chrome ────────────────────────────────────────────────────────── */
+
+.react-flow.strategy-flow {
+  background: var(--white);
+}
+
+/* Override the global `svg { max-width: 100% }` in globals.css.
+   ReactFlow's edge wrapper SVGs are absolutely positioned with no explicit
+   dimensions; the global max-width collapses them to 0 width, hiding all
+   edges. We reset max-width and ensure overflow is visible. */
+.react-flow.strategy-flow .react-flow__edges svg {
+  max-width: none;
+  overflow: visible;
+}
+
+.react-flow.strategy-flow .react-flow__attribution {
+  display: none;
+}
+
+.react-flow.strategy-flow .react-flow__controls {
+  display: none;
+}
+
+.react-flow.strategy-flow .react-flow__minimap {
+  display: none;
+}
+
+.react-flow.strategy-flow .react-flow__edge-path {
+  stroke-linecap: round;
+}
+
+/* ── Node base (card) ─────────────────────────────────────────────────────── */
+
+.flow-card {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  width: 160px;
+  background: var(--white);
+  border: 1px solid var(--rule-dark);
+  font-family: var(--font-ui);
+  user-select: none;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
+  overflow: hidden;
+}
+
+/* Coloured left bar identifying the agent */
+.flow-card__bar {
+  width: 4px;
+  flex-shrink: 0;
+  background: var(--node-color, #999999);
+  opacity: 0.4;
+  transition: opacity 0.3s ease;
+}
+
+.flow-card__body {
+  padding: 7px 10px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.flow-card__role {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--grey);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.flow-card__model {
+  font-size: 10px;
+  color: var(--grey-light);
+  font-family: "Menlo", "Consolas", monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.flow-card__status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+  font-size: 10px;
+  font-family: "Menlo", "Consolas", monospace;
+  color: var(--grey-light);
+}
+
+.flow-card__icon {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.flow-card__duration {
+  font-size: 10px;
+}
+
+/* ── Pending ──────────────────────────────────────────────────────────────── */
+
+.flow-card.is-pending .flow-card__bar {
+  opacity: 0.25;
+}
+.flow-card.is-pending .flow-card__role {
+  color: var(--grey-light);
+}
+
+/* ── Running — teal border + pulsing glow ─────────────────────────────────── */
+
+.flow-card.is-running {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 0 rgba(13, 118, 128, 0.4);
+  animation: flow-card-pulse 1.8s ease-in-out infinite;
+}
+.flow-card.is-running .flow-card__bar {
+  opacity: 1;
+  background: var(--teal);
+}
+.flow-card.is-running .flow-card__role {
+  color: var(--teal);
+}
+.flow-card.is-running .flow-card__icon {
+  color: var(--teal);
+  animation: flow-spin 1.5s linear infinite;
+  display: inline-block;
+}
+.flow-card.is-running .flow-card__duration {
+  color: var(--teal);
+}
+
+/* ── Done — solid, clickable ──────────────────────────────────────────────── */
+
+.flow-card.is-done .flow-card__bar {
+  opacity: 1;
+}
+.flow-card.is-done .flow-card__role {
+  color: var(--charcoal);
+}
+.flow-card.is-done .flow-card__icon {
+  color: var(--teal);
+  font-weight: 700;
+}
+.flow-card.is-done {
+  cursor: pointer;
+}
+.flow-card.is-done:hover {
+  border-color: var(--node-color, var(--teal));
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--node-color, #0D7680) 20%, transparent);
+}
+
+/* ── Failed ───────────────────────────────────────────────────────────────── */
+
+.flow-card.is-failed {
+  border-color: var(--claret);
+}
+.flow-card.is-failed .flow-card__bar {
+  background: var(--claret);
+  opacity: 1;
+}
+.flow-card.is-failed .flow-card__role {
+  color: var(--claret);
+}
+.flow-card.is-failed .flow-card__icon {
+  color: var(--claret);
+  font-weight: 700;
+}
+
+/* ── Cancelled — frozen amber ─────────────────────────────────────────────── */
+
+.flow-card.is-cancelled {
+  border-color: #d97706;
+}
+.flow-card.is-cancelled .flow-card__bar {
+  background: #d97706;
+  opacity: 0.8;
+}
+.flow-card.is-cancelled .flow-card__role {
+  color: #b45309;
+}
+.flow-card.is-cancelled .flow-card__icon {
+  color: #d97706;
+}
+
+/* ── Skipped round — dimmed ───────────────────────────────────────────────── */
+
+.flow-card.is-skipped {
+  opacity: 0.2;
+}
+
+/* ── Judge — dashed border ────────────────────────────────────────────────── */
+
+.flow-card.is-judge {
+  border-style: dashed;
+  border-color: var(--node-color, var(--rule-dark));
+}
+.flow-card.is-judge .flow-card__bar {
+  opacity: 1;
+}
+
+/* ── Strategy node (All Angles) — wider ───────────────────────────────────── */
+
+.flow-card.is-strategy {
+  width: 200px;
+}
+.flow-card.is-strategy .flow-card__role {
+  font-size: 13px;
+}
+.flow-card.is-strategy.is-done {
+  cursor: pointer;
+}
+
+/* ── Keyframes ─────────────────────────────────────────────────────────────── */
+
+@keyframes flow-card-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(13, 118, 128, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(13, 118, 128, 0);
+  }
+}
+
+@keyframes flow-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Edges ────────────────────────────────────────────────────────────────── */
+/* Stroke colour, width, and opacity are set inline per-edge by the layout
+   engine (state-driven). CSS only handles ReactFlow defaults. */
+
+.react-flow__edge-path {
+  stroke-linecap: round;
+}
+
+.react-flow__edge-text {
+  font-size: 9px;
+  font-family: var(--font-ui);
+  fill: var(--grey-light);
+}
+
+@keyframes flow-edge-dash {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+/* ── Inspector panel ──────────────────────────────────────────────────────── */
+
+.flow-inspector__overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  z-index: 50;
+}
+
+.flow-inspector__panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 440px;
+  max-width: 100vw;
+  background: var(--white);
+  border-left: 1px solid var(--rule);
+  z-index: 51;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 600px) {
+  .flow-inspector__panel {
+    width: 100vw;
+  }
+}
+
+.flow-inspector__header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.flow-inspector__tabs {
+  display: flex;
+  border-bottom: 1px solid var(--rule);
+}
+
+.flow-inspector__tab {
+  flex: 1;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--grey-light);
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.flow-inspector__tab.is-active {
+  color: var(--teal);
+  border-bottom-color: var(--teal);
+}
+
+.flow-inspector__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 18px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--charcoal);
+  font-family: var(--font-text);
+}
+
+.flow-inspector__reasoning {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--font-text);
+  font-size: 13px;
+  color: var(--grey);
+  border-left: 2px solid var(--teal);
+  padding-left: 12px;
+  max-height: 60vh;
+  overflow-y: auto;
+}
