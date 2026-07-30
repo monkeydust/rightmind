@@ -85,6 +85,9 @@ export async function orchestrateAllAngles({
   modelTier = "premium",
 }: OrchestrationOptions): Promise<void> {
   const judgeRole = strategy.judge.role;
+  // Resolved once: tier pin applied, file-swap applied. Used for the progress
+  // step, the actual call, and the stored transcript row so all three agree.
+  const metaJudgeModel = resolveTierModel(strategy.judge, modelTier, file);
 
   // Build steps: one per child strategy + meta-judge
   const steps: AgentStepProgress[] = [
@@ -95,7 +98,7 @@ export async function orchestrateAllAngles({
     })),
     {
       agentRole: "🔮 Meta-Judge",
-      agentModel: strategy.judge.model,
+      agentModel: metaJudgeModel,
       status: "pending" as const,
     },
   ];
@@ -224,7 +227,7 @@ export async function orchestrateAllAngles({
     const judgeUserMsg = `# Original Challenge\n\n${challenge}\n\n===\n\n# Strategy Reports\n\n${reportsText}`;
 
     const judgeResponse = await callModel(
-      resolveTierModel(strategy.judge, modelTier, file),
+      metaJudgeModel,
       [
         { role: "system", content: judgePrompt },
         { role: "user", content: await buildUserContent(judgeUserMsg, file) },
@@ -242,7 +245,7 @@ export async function orchestrateAllAngles({
       data: {
         jobId,
         agentRole: judgeRole,
-        agentModel: strategy.judge.model,
+        agentModel: metaJudgeModel,
         round: 1,
         phase: "meta-synthesis",
         prompt: judgePrompt,

@@ -592,7 +592,15 @@ function layoutDeepDive(
   return { nodes, edges };
 }
 
-/** All Angles: 2×2 strategy grid → meta-judge. */
+/**
+ * All Angles: four independent strategies in a column → meta-judge.
+ *
+ * Deliberately NOT a 2×2 grid: with two columns, a left-column node's edge
+ * to the judge passes straight through the right-column node at the same
+ * height, which reads as strategy→strategy data flow. The strategies run
+ * in parallel and never see each other — the column layout keeps every
+ * edge's path clear so the picture matches the execution model.
+ */
 function layoutAllAngles(
   strategy: StrategySummary,
   steps: StepInput[],
@@ -603,20 +611,18 @@ function layoutAllAngles(
   const edges: AgentGraphEdge[] = [];
 
   const strategyOrder = ["consensus-board", "deep-dive", "stress-tester", "round-table"];
-  const positions: Record<string, { x: number; y: number }> = {
-    "consensus-board": { x: 0, y: 0 },
-    "deep-dive": { x: 280, y: 0 },
-    "stress-tester": { x: 0, y: 160 },
-    "round-table": { x: 280, y: 160 },
-  };
+  const strategyX = 0;
+  const spacing = 130;
+  const judgeX = 460;
+  const judgeY = ((strategyOrder.length - 1) * spacing) / 2;
 
   steps.filter((s) => !isJudgeRole(s.agentRole, strategy)).forEach((step) => {
     const sid = ALL_ANGLES_STEP_TO_ID[step.agentRole];
     const idx = sid ? strategyOrder.indexOf(sid) : -1;
-    const pos = idx >= 0 ? positions[sid!] : { x: 0, y: 0 };
+    const y = idx >= 0 ? idx * spacing : 0;
     const jobId = idx >= 0 ? childJobIds[idx] : undefined;
     nodes.push(
-      makeNode(step, strategy, pos.x, pos.y, {
+      makeNode(step, strategy, strategyX, y, {
         isStrategyNode: true,
         jobId,
         skipped: stepSkipped(step, jobFinished),
@@ -627,7 +633,7 @@ function layoutAllAngles(
   const metaJudge = steps.find((s) => isJudgeRole(s.agentRole, strategy));
   if (metaJudge) {
     nodes.push(
-      makeNode(metaJudge, strategy, 600, 80, {
+      makeNode(metaJudge, strategy, judgeX, judgeY, {
         isJudge: true,
         skipped: stepSkipped(metaJudge, jobFinished),
       })
