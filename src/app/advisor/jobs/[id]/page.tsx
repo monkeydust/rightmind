@@ -325,9 +325,9 @@ interface TranscriptEntry {
 }
 
 const STRATEGY_DESCRIPTIONS: Record<string, string> = {
-  "consensus-board": "4 specialist agents (Risk Analyst, Growth Strategist, Operations Manager, Technical Feasibility Assessor) analysed the challenge independently and in parallel. A Chief Executive Synthesiser then reviewed all four analyses and produced the final briefing below.",
+  "consensus-board": "5 specialist agents (Risk Analyst, Growth Strategist, Operations Manager, Technical Feasibility Assessor, Second-Order Effects Analyst) analysed the challenge independently and in parallel. A Chief Executive Synthesiser then reviewed all five analyses and produced the final briefing below.",
   "stress-tester": "A Proposer drafted an initial position, then a Devil's Advocate attacked it across multiple rounds. A Verdict Judge reviewed the full debate and produced the final briefing below.",
-  "round-table": "Multiple agents debated the challenge across several rounds, explicitly agreeing and disagreeing with each other until consensus emerged. A Consensus Judge evaluated the final positions.",
+  "round-table": "5 agents — including a dedicated Contrarian tasked with resisting premature agreement — debated the challenge across several rounds, explicitly agreeing and disagreeing with each other until consensus emerged. A Consensus Judge evaluated the final positions.",
   "deep-dive": "A Manager agent decomposed the challenge into sub-tasks, specialist Worker agents tackled each one independently, then a Review Judge synthesised all findings into the final briefing below.",
   "all-angles": "All four strategies (Consensus Board, Stress Tester, Round Table, Deep Dive) were run in parallel. A Meta-Judge then analysed where they agreed and diverged, producing a cross-strategy alignment matrix and confidence-weighted recommendation.",
 };

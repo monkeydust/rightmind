@@ -143,7 +143,7 @@ Five specialist advisors analyse your challenge **simultaneously and independent
 - You have a broad, open-ended question — *"Should I do this?"*, *"Is this viable?"*
 - You want diverse perspectives rather than a single viewpoint
 - You need a clear recommendation with supporting evidence from multiple angles
-- Speed matters — this is the fastest strategy (~15-30 seconds)
+- Speed matters — this is among the faster strategies (~3-9 minutes; Deep Dive is quicker still)
 
 ## Why It Works
 Using genuinely different LLM architectures (Claude, GPT, Gemini, DeepSeek, Grok) produces stronger analysis than prompting a single model with different personas. Each model family has independent reasoning paths and biases, so their agreement carries real signal and their disagreements surface genuine tensions.
