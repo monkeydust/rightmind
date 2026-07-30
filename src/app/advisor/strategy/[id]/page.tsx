@@ -39,7 +39,7 @@ const WORKFLOW_LABELS: Record<string, string> = {
 function modelShort(m: string) { return m.split("/").pop() || m; }
 function provider(m: string) {
   const p = m.split("/")[0];
-  return { anthropic: "Anthropic", openai: "OpenAI", google: "Google", deepseek: "DeepSeek" }[p] || p;
+  return { anthropic: "Anthropic", openai: "OpenAI", google: "Google", deepseek: "DeepSeek", "x-ai": "xAI" }[p] || p;
 }
 
 export default function StrategyDetailPage() {

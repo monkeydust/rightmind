@@ -113,7 +113,9 @@ export async function callModel(
     model,
     messages,
     temperature: options?.temperature ?? 0.7,
-    max_tokens: options?.max_tokens ?? 4096,
+    // Headroom for reasoning models that count thinking against max_tokens
+    // (Claude Opus 5 thinks by default). Judges override this with 16384.
+    max_tokens: options?.max_tokens ?? 8192,
     // Privacy: prefer providers that don't collect/train on data
     provider: {
       data_collection: "deny",

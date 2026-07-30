@@ -7,10 +7,10 @@ bestFor: "Massive, complex challenges that need to be broken down into manageabl
 workflow: "manager_worker"
 maxSubTasks: 5
 estimatedCost:
-  instant: "£1.00–£3.00"
-  overnight: "£0.50–£1.50"
+  instant: "£0.50–£2.00"
+  overnight: "£0.25–£1.00"
 estimatedLatency:
-  instant: "~30-60s"
+  instant: "~1-4 min"
   overnight: "≤24 hours"
 arxivPapers:
   - title: "Enhancing LLM Problem Solving via Tutor-Student Multi-Agent Interaction"
@@ -18,7 +18,7 @@ arxivPapers:
     insight: "Hierarchical decomposition outperforms flat debate for complex, multi-step problems"
 agents:
   - role: "Manager"
-    model: "openai/gpt-5.4"
+    model: "openai/gpt-5.6-terra"
     color: "#f59e0b"
     phase: "plan"
     systemPrompt: |
@@ -49,7 +49,7 @@ agents:
       Be precise. The specialists will ONLY see their sub-task description — they will NOT see the full original challenge. Everything they need must be in the description.
 
   - role: "Specialist Worker"
-    model: "google/gemini-2.5-flash"
+    model: "google/gemini-3.5-flash-lite"
     color: "#3b82f6"
     phase: "execute"
     systemPrompt: |
@@ -70,7 +70,7 @@ agents:
 
 judge:
   role: "Manager — Final Review"
-  model: "openai/gpt-5.4"
+  model: "openai/gpt-5.6-terra"
   color: "#f59e0b"
   systemPrompt: |
     You are the Project Manager who originally decomposed the challenge into sub-tasks. Your specialists have now completed their work. You must review ALL specialist outputs and compile them into a comprehensive final report.

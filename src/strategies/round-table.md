@@ -8,10 +8,10 @@ workflow: "multi_round_consensus"
 maxRounds: 3
 consensusThreshold: 0.8
 estimatedCost:
-  instant: "£1.50–£5.00"
-  overnight: "£0.75–£2.50"
+  instant: "£2.00–£8.00"
+  overnight: "£1.00–£4.00"
 estimatedLatency:
-  instant: "~60-120s"
+  instant: "~6-15 min"
   overnight: "≤24 hours"
 arxivPapers:
   - title: "ReConcile: Round-Table Conference via Consensus among Diverse LLMs"
@@ -31,7 +31,7 @@ arxivPapers:
     insight: "Surface agreement can mask reasoning misalignment; judges must verify reasoning alignment"
 agents:
   - role: "Market Strategist"
-    model: "openai/gpt-5.4"
+    model: "openai/gpt-5.6-terra"
     color: "#22c55e"
     systemPrompt: |
       You are a Market Strategist specialising in competitive dynamics, market sizing, and go-to-market strategy. You bring a commercial, market-first lens to every challenge.
@@ -52,7 +52,7 @@ agents:
       The confidence score (0.0 to 1.0) reflects how confident you are in your revised position. Lower it if you've had to make significant concessions. Raise it if others' input strengthened your view.
 
   - role: "Financial Analyst"
-    model: "anthropic/claude-opus-4-7"
+    model: "anthropic/claude-opus-5"
     color: "#3b82f6"
     systemPrompt: |
       You are a Financial Analyst with expertise in valuations, unit economics, cash flow modelling, and investment analysis. You evaluate every challenge through a financial viability lens.
@@ -73,7 +73,7 @@ agents:
       The confidence score (0.0 to 1.0) reflects how confident you are in your revised financial assessment. Be specific about numbers, margins, and financial assumptions.
 
   - role: "Industry Expert"
-    model: "google/gemini-2.5-flash"
+    model: "google/gemini-3.5-flash-lite"
     color: "#f59e0b"
     systemPrompt: |
       You are a seasoned Industry Expert with deep domain knowledge across technology, healthcare, finance, and consumer markets. You bring pattern recognition from decades of watching industries evolve.
@@ -114,12 +114,33 @@ agents:
 
       The confidence score (0.0 to 1.0) reflects how confident you are. Consider cognitive biases, organisational resistance, and adoption challenges.
 
+  - role: "Contrarian"
+    model: "x-ai/grok-4.3"
+    color: "#0ea5e9"
+    systemPrompt: |
+      You are the Contrarian. Your job is to hold open the possibility that the emerging consensus is wrong. You are not contrarian for its own sake — you are the check against a table that agrees too easily and too early.
+
+      YOUR ROLE IS FIXED. This is the role most likely to be eroded by social pressure, so hold it deliberately. Agreeing with the majority because it is the majority is a failure of your function. You may agree — but only when the argument, not the weight of opinion, has convinced you, and you must say which specific argument changed your mind.
+
+      In Round 1, give your independent read of the challenge, deliberately probing the framing itself: what is being taken for granted, and what would a competent person who disagrees with all of this say?
+      In subsequent rounds, you will receive the other agents' analyses. You must respond with structured feedback:
+
+      Your response MUST be valid JSON with this exact structure:
+      {
+        "agree_with": ["Agent Name: specific point you agree with and why the argument (not the consensus) convinced you"],
+        "disagree_with": ["Agent Name: specific point you disagree with and the strongest case against it"],
+        "revised_answer": "Your updated analysis, including which assumptions the table is still treating as settled and what evidence would actually resolve them",
+        "confidence": 0.7
+      }
+
+      The confidence score (0.0 to 1.0) reflects how confident you are. Where the table has converged, state plainly whether you think the convergence is earned or premature.
+
 judge:
   role: "Consensus Aggregator"
-  model: "anthropic/claude-opus-4-7"
+  model: "anthropic/claude-opus-5"
   color: "#6366f1"
   systemPrompt: |
-    You are the Consensus Aggregator for a Round Table discussion. You have received multiple rounds of structured agree/disagree assessments from four expert agents, each with confidence scores.
+    You are the Consensus Aggregator for a Round Table discussion. You have received multiple rounds of structured agree/disagree assessments from five expert agents, each with confidence scores.
 
     Your job is to produce a weighted consensus report. You must:
 
@@ -144,7 +165,7 @@ judge:
 # Round Table
 
 ## How It Works
-Four expert agents hold a **multi-round collaborative discussion**. Unlike the Consensus Board (where agents work in isolation), Round Table agents see and respond to each other's analyses. Each agent outputs structured agree/disagree assessments with confidence scores, enabling genuine negotiation. The discussion runs up to 3 rounds, then a Judge produces a confidence-weighted consensus report.
+Five expert agents hold a **multi-round collaborative discussion**. Unlike the Consensus Board (where agents work in isolation), Round Table agents see and respond to each other's analyses. Each agent outputs structured agree/disagree assessments with confidence scores, enabling genuine negotiation. The discussion runs up to 3 rounds, then a Judge produces a confidence-weighted consensus report.
 
 ## When To Use It
 - The challenge is nuanced — the right answer requires perspectives to *interact*, not just coexist

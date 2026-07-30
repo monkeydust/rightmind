@@ -11,7 +11,7 @@ import type { LLMMessage } from "@/lib/types";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 
-const MODEL = "google/gemini-3.1-flash-lite-preview";
+const MODEL = "google/gemini-3.1-flash-lite";
 
 const QUESTIONS_SYSTEM = `You are helping a user formulate a follow-up question to a strategic analysis they received. They have a rough idea of what they want to explore further. Generate 3-5 clarifying questions to help them write a precise, targeted follow-up.
 

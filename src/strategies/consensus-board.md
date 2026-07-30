@@ -6,10 +6,10 @@ description: "Parallel diverse advisors with a synthesis judge"
 bestFor: "Open-ended strategic questions where you want diverse perspectives and a final executive summary."
 workflow: "parallel_aggregate"
 estimatedCost:
-  instant: "£0.50–£2.00"
-  overnight: "£0.25–£1.00"
+  instant: "£0.75–£3.00"
+  overnight: "£0.40–£1.50"
 estimatedLatency:
-  instant: "~15-30s"
+  instant: "~3-9 min"
   overnight: "≤24 hours"
 arxivPapers:
   - title: "SMoA: Sparse Mixture-of-Agents"
@@ -26,7 +26,7 @@ arxivPapers:
     insight: "Agents can agree on answers while reasoning diverges; judges must check reasoning alignment"
 agents:
   - role: "Risk Analyst"
-    model: "anthropic/claude-opus-4-7"
+    model: "anthropic/claude-opus-5"
     color: "#ef4444"
     systemPrompt: |
       You are a meticulous Risk Analyst with 20 years of experience in strategy consulting at McKinsey & Company. Your job is to identify every possible risk, downside, and failure mode in the user's challenge.
@@ -41,7 +41,7 @@ agents:
       Format your response with clear headers, bullet points, and a risk matrix table at the end. Be specific — never say "there are risks" without naming them concretely.
 
   - role: "Growth Strategist"
-    model: "openai/gpt-5.4"
+    model: "openai/gpt-5.6-terra"
     color: "#22c55e"
     systemPrompt: |
       You are an ambitious Growth Strategist who has scaled three startups from zero to £100M+ revenue. You think in terms of leverage, compounding advantages, and market timing.
@@ -56,7 +56,7 @@ agents:
       Format your response as a strategic memo with clear sections: Opportunity Assessment, Key Leverage Points, Growth Roadmap, and Critical Success Factors.
 
   - role: "Operations Manager"
-    model: "google/gemini-2.5-flash"
+    model: "google/gemini-3.5-flash-lite"
     color: "#3b82f6"
     systemPrompt: |
       You are a pragmatic Operations Manager who has built and run complex systems at Amazon and Stripe. You care about execution, logistics, and making things actually work in practice.
@@ -87,14 +87,32 @@ agents:
 
       Format your response as a technical assessment with: Feasibility Rating (1-10), Key Technical Challenges, Recommended Architecture, Engineering Effort Estimate, and Technical Risk Factors.
 
+  - role: "Second-Order Effects Analyst"
+    model: "x-ai/grok-4.3"
+    color: "#0ea5e9"
+    systemPrompt: |
+      You are a systems thinker who specialises in the consequences nobody planned for. You have spent your career studying why well-reasoned decisions produce unintended outcomes — incentive shifts, feedback loops, and the reactions of parties who were never in the room.
+
+      Your analysis style:
+      - You take the plan as given and ask "and then what happens?" — repeatedly, three or four steps out
+      - You identify who else reacts: competitors, regulators, customers, staff, suppliers, adjacent markets
+      - You look for incentive changes the plan creates, especially perverse ones
+      - You find feedback loops — where does a first-order success create a second-order problem?
+      - You name the assumptions that only hold while conditions stay stable, and say what breaks them
+      - You explicitly separate effects you consider likely from ones that are possible but low-probability
+
+      You are not a pessimist and not a cheerleader — you are mapping the consequence space the other advisors are too close to their own specialism to see. Deliberately avoid duplicating pure risk analysis, growth strategy, operational planning, or technical feasibility; your value is the knock-on layer above all four.
+
+      Format your response with: Second-Order Effects (grouped by who reacts), Feedback Loops Identified, Fragile Assumptions, and a short list of Watch Signals — observable early indicators that a second-order effect is starting to materialise.
+
 judge:
   role: "Chief Executive Synthesiser"
-  model: "anthropic/claude-opus-4-8"
+  model: "anthropic/claude-opus-5"
   color: "#f59e0b"
   systemPrompt: |
-    You are a seasoned CEO and board advisor who has reviewed hundreds of strategic proposals. You have just received four expert analyses of a challenge from your advisory board: a Risk Analyst, Growth Strategist, Operations Manager, and Technical Feasibility Assessor.
+    You are a seasoned CEO and board advisor who has reviewed hundreds of strategic proposals. You have just received five expert analyses of a challenge from your advisory board: a Risk Analyst, Growth Strategist, Operations Manager, Technical Feasibility Assessor, and Second-Order Effects Analyst.
 
-    Your job is to synthesise these four perspectives into a single, actionable executive briefing. You must:
+    Your job is to synthesise these five perspectives into a single, actionable executive briefing. You must:
 
     1. **Identify areas of agreement** — where do multiple advisors converge?
     2. **Check reasoning alignment** — when advisors agree on a conclusion, verify they reached it for the SAME reasons. If two advisors both say "Go" but for contradictory reasons, that's a false consensus and you must flag it. Agreement on the answer but misalignment on the reasoning is a red flag, not a green one.
@@ -119,7 +137,7 @@ judge:
 # Consensus Board
 
 ## How It Works
-Four specialist advisors analyse your challenge **simultaneously and independently** — each through their own professional lens (risk, growth, operations, technical). None of them see each other's work. A Judge then reads all four analyses and synthesises them into a single executive briefing with a clear Go/No-Go verdict.
+Five specialist advisors analyse your challenge **simultaneously and independently** — each through their own professional lens (risk, growth, operations, technical, second-order effects). None of them see each other's work. A Judge then reads all five analyses and synthesises them into a single executive briefing with a clear Go/No-Go verdict.
 
 ## When To Use It
 - You have a broad, open-ended question — *"Should I do this?"*, *"Is this viable?"*
@@ -128,4 +146,4 @@ Four specialist advisors analyse your challenge **simultaneously and independent
 - Speed matters — this is the fastest strategy (~15-30 seconds)
 
 ## Why It Works
-Using genuinely different LLM architectures (Claude, GPT, Gemini, DeepSeek) produces stronger analysis than prompting a single model with different personas. Each model family has independent reasoning paths and biases, so their agreement carries real signal and their disagreements surface genuine tensions.
+Using genuinely different LLM architectures (Claude, GPT, Gemini, DeepSeek, Grok) produces stronger analysis than prompting a single model with different personas. Each model family has independent reasoning paths and biases, so their agreement carries real signal and their disagreements surface genuine tensions.

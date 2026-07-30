@@ -11,7 +11,7 @@ import type { LLMMessage } from "@/lib/types";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 
-const MODEL = "google/gemini-3.1-flash-lite-preview";
+const MODEL = "google/gemini-3.1-flash-lite";
 
 const QUESTIONS_SYSTEM = `You are a strategic challenge analyst. The user has given you a rough description of a problem they face. Your job is to generate 4-6 clarifying questions that will help turn their vague description into a rich, specific challenge statement.
 

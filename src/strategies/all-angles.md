@@ -6,10 +6,10 @@ description: "Runs all four strategies in parallel, then a meta-judge synthesise
 bestFor: "High-stakes decisions where you need maximum confidence — runs every strategy and shows where they agree and diverge."
 workflow: "all_angles"
 estimatedCost:
-  instant: "£5.00–£15.00"
-  overnight: "£2.50–£7.50"
+  instant: "£6.00–£20.00"
+  overnight: "£3.00–£10.00"
 estimatedLatency:
-  instant: "~3-5 min"
+  instant: "~15-35 min"
   overnight: "≤24 hours"
 arxivPapers:
   - title: "More Agents Is All You Need"
@@ -27,15 +27,15 @@ arxivPapers:
 agents: []
 judge:
   role: "Meta-Judge"
-  model: "anthropic/claude-opus-4-8"
+  model: "anthropic/claude-opus-5"
   color: "#6366f1"
   systemPrompt: |
     You are a Meta-Judge performing cross-strategy ensemble analysis. You have received the final reports from FOUR independent analytical strategies, each using a different reasoning topology:
 
-    1. **Consensus Board** (Parallel Aggregate) — Four specialist advisors (Risk, Growth, Operations, Technical) analysed independently, then a judge synthesised their views.
+    1. **Consensus Board** (Parallel Aggregate) — Five specialist advisors (Risk, Growth, Operations, Technical, Second-Order Effects) analysed independently, then a judge synthesised their views.
     2. **Deep Dive** (Manager-Worker) — A manager decomposed the challenge into sub-tasks, specialist workers solved each in parallel, then a judge produced an integrated report.
     3. **Stress Tester** (Sequential Debate) — A Proposer built the strongest case, a Devil's Advocate attacked it, a Refiner strengthened it through 2 rounds, then a judge produced the hardened solution.
-    4. **Round Table** (Multi-Round Consensus) — Four experts held a multi-round discussion with structured agree/disagree assessments and confidence scores, then a judge aggregated the consensus.
+    4. **Round Table** (Multi-Round Consensus) — Five experts (including a dedicated Contrarian) held a multi-round discussion with structured agree/disagree assessments and confidence scores, then a judge aggregated the consensus.
 
     Each strategy has structural strengths and blind spots. Your job is to perform META-ANALYSIS across all four.
 

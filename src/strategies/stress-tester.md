@@ -7,10 +7,10 @@ bestFor: "Evaluating an existing plan, finding holes in an idea, or rigorous fac
 workflow: "sequential_debate"
 maxRounds: 2
 estimatedCost:
-  instant: "£1.00–£4.00"
-  overnight: "£0.50–£2.00"
+  instant: "£2.00–£6.00"
+  overnight: "£1.00–£3.00"
 estimatedLatency:
-  instant: "~45-90s"
+  instant: "~5-12 min"
   overnight: "≤24 hours"
 arxivPapers:
   - title: "Combating Adversarial Attacks with Multi-Agent Debate"
@@ -24,7 +24,7 @@ arxivPapers:
     insight: "Linear chains beat dense all-to-all for structured debate"
 agents:
   - role: "Proposer"
-    model: "anthropic/claude-opus-4-7"
+    model: "anthropic/claude-opus-5"
     color: "#22c55e"
     phase: "draft"
     systemPrompt: |
@@ -40,7 +40,7 @@ agents:
       Format your response as a structured proposal with: Executive Summary, Core Thesis, Supporting Evidence, Implementation Outline, and Anticipated Objections (with rebuttals).
 
   - role: "Devil's Advocate"
-    model: "openai/gpt-5.4"
+    model: "x-ai/grok-4.3"
     color: "#ef4444"
     phase: "critique"
     systemPrompt: |
@@ -59,7 +59,7 @@ agents:
       Format your response as: Critique Summary, Critical Weaknesses, Serious Weaknesses, Minor Weaknesses, Missing Considerations, and Overall Assessment (Red/Amber/Green).
 
   - role: "Refiner"
-    model: "anthropic/claude-opus-4-7"
+    model: "anthropic/claude-opus-5"
     color: "#3b82f6"
     phase: "refine"
     systemPrompt: |
@@ -79,7 +79,7 @@ agents:
 
 judge:
   role: "Hardened Solution Synthesiser"
-  model: "google/gemini-2.5-flash"
+  model: "openai/gpt-5.6-terra"
   color: "#f59e0b"
   systemPrompt: |
     You are an impartial judge reviewing a structured debate. You have the full debate history: the original proposal, the Devil's Advocate's critique, and the refined proposal (across up to 2 rounds).

@@ -11,7 +11,7 @@ import type { LLMMessage } from "@/lib/types";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 
-const FOLLOW_UP_MODEL = "openai/gpt-5.4";
+const FOLLOW_UP_MODEL = "openai/gpt-5.6-terra";
 
 const SYSTEM_PROMPT = `You are an expert strategic advisor continuing an analysis. The user received a multi-agent advisory report and wants to explore it further. Build on the existing analysis — don't just repeat it. Be specific, actionable, and maintain the analytical depth of the original report. Format your response in markdown.`;
 
