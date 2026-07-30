@@ -119,7 +119,7 @@ src/
 
 ## Deployment
 
-Deployed to **Hetzner Cloud VPS** (`89.167.62.131`, Ubuntu 24.04) via Docker, fronted by **Caddy** (auto-HTTPS via Let's Encrypt). App dir: `/opt/rightmind`. Live URL: `https://www.rightmind.uk`. SQLite persisted via Docker volume at `/app/data/production.db`. Container maps host port `3001` → container `3000` (port 3000 taken by sibling app `rightdata`). See `DEPLOYMENT.md` for the full runbook.
+Deployed to a Linux VPS via Docker, fronted by **Caddy** (auto-HTTPS via Let's Encrypt). SQLite persisted via a Docker volume at `/app/data/production.db`. Container maps host port `3001` → container `3000` (port 3000 taken by a sibling app). Host details, credentials and the full runbook are kept out of this repo — see the private `deploy` skill.
 
 ⚠️ Known server quirk: `docker-compose` v1.29.2 on the box crashes recreating existing containers (`KeyError: 'ContainerConfig'`). Workaround: `docker rm -f` before `up`.
 

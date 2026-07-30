@@ -378,13 +378,11 @@ Edge states: idle `#CCC1B7` @0.4 → active `#0D7680` @1.0 → done `#333333` @0
 
 **docker-compose** — single service, ports **3001:3000**, `shm_size: 512m` (Chromium), named volume `sqlite_data:/app/data`.
 
-**Hosting** (`DEPLOYMENT.md`) — Hetzner VPS `89.167.62.131`, Ubuntu 24.04, app at `/opt/rightmind`, Caddy reverse proxy with automatic Let's Encrypt → `localhost:3001`. Port 3000 is taken by a sibling app (`rightdata.uk`).
+**Hosting** — a Linux VPS running Docker, fronted by Caddy as a reverse proxy with automatic Let's Encrypt HTTPS → `localhost:3001`. Port 3000 is taken by a sibling app. Host details, credentials and the deployment runbook are kept out of this repo; see the private `deploy` skill.
 
 ⚠️ **Two recorded gotchas:**
 1. `docker-compose` v1.29.2 on Ubuntu 24.04 fails to recreate containers (`KeyError: 'ContainerConfig'`). Workaround: `docker rm -f $(docker ps -q -f name=rightmind)` before `up`.
-2. The auth cookie is `Secure`-flagged — raw `http://89.167.62.131:3001` will **never** log you in. Must go through HTTPS.
-
-📌 `DEPLOYMENT.md` also states: **ask the user for the SSH password before attempting to SSH** — password auth means SSH hangs silently otherwise.
+2. The auth cookie is `Secure`-flagged — reaching the app over plain HTTP by IP and port will **never** log you in. Must go through HTTPS on the real domain.
 
 **Scripts** — `scripts/backup-db.js` (timestamped copy to `prisma/backups/`), `scripts/export-demo.mjs` (rebuilds `demo-fixtures.json` from live DB via `better-sqlite3`), `prisma/seed.ts` (upserts the owner user with the env OpenRouter key).
 
