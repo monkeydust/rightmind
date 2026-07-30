@@ -20,6 +20,7 @@ interface SubmitRequest {
   challenge: string;
   strategyId: string;
   executionMode: "instant" | "overnight";
+  modelTier?: "premium" | "dragon";
   promptOverrides?: Record<string, string>;
   includeReasoning?: boolean;
   /** Base64 data URL of an uploaded file (e.g. "data:application/pdf;base64,...") */
@@ -83,6 +84,7 @@ export async function POST(request: Request) {
         fileName: body.fileName || null,
         strategyId: body.strategyId,
         executionMode: "instant",
+        modelTier: body.modelTier === "dragon" ? "dragon" : "premium",
         status: "PENDING",
         progress: JSON.stringify([]),
       },
@@ -102,6 +104,7 @@ export async function POST(request: Request) {
       promptOverrides: body.promptOverrides,
       includeReasoning: body.includeReasoning,
       file: fileAttachment,
+      modelTier: body.modelTier === "dragon" ? ("dragon" as const) : ("premium" as const),
     };
 
     // Route to the correct orchestrator based on workflow type

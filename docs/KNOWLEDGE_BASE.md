@@ -520,3 +520,54 @@ Only **Consensus Board is measured**. The other four are scaled extrapolations f
 ### Note on OpenRouter model IDs
 
 OpenRouter's canonical Anthropic IDs use **dot** notation (`anthropic/claude-opus-4.7`), but it **aliases the hyphen form** (`anthropic/claude-opus-4-7`) to the same model. The old config was therefore working, not broken — a hyphenated ID missing from the `/models` listing is not evidence of an outage. Verify with `GET /api/v1/models/{id}/endpoints` and compare the returned canonical `id`.
+
+---
+
+## 15. Dragon tier — cheaper open-weight roster (2026-07-30)
+
+Every agent role now carries an optional `dragonModel:` pin alongside its premium `model:`. A job runs on one roster or the other via `AdvisorJob.modelTier` (`"premium"` | `"dragon"`).
+
+### Measured A/B — identical challenge, Consensus Board
+
+| | Premium | Dragon |
+|---|---:|---:|
+| Cost | $0.8964 | **$0.0632** |
+| Tokens | 112,615 | 41,426 |
+| Wall clock | 502s | **273s** |
+| Report | 14,433 chars | 11,468 chars |
+
+**14.2× cheaper and 1.8× faster.** Better than the 7.1× projection, because the Dragon models also consumed far fewer tokens — Opus 5's aggressive web-searching is what inflated the premium run.
+
+**All Angles on Dragon: $0.5321, 1,101s, 19,187-char report.** The Meta-Judge — the hardest call in the system (JSON mode, reads four full reports) — returned valid structured output: alignment 0.88 "Strong", 4 strategy verdicts, 6 key dimensions, 5 convergence / 3 divergence / 3 blind-spot entries. Tier correctly propagated to all four child jobs.
+
+### The roster (one model per independent lab)
+
+| Role | Premium | Dragon | Lab |
+|---|---|---|---|
+| Risk / Proposer / Financial | `claude-opus-5` | `deepseek/deepseek-r1-0528` | DeepSeek |
+| Growth / Manager / Market | `gpt-5.6-terra` | `minimax/minimax-m3` | MiniMax |
+| Operations / Worker / Industry | `gemini-3.5-flash-lite` | `tencent/hy3` | Tencent |
+| Technical / Human Factors | `deepseek-r1` | `bytedance-seed/seed-2.0-mini` | ByteDance |
+| Second-Order / Contrarian / Devil's Advocate | `grok-4.3` | `moonshotai/kimi-k2.5` | Moonshot |
+| All judges | `claude-opus-5` / `gpt-5.6-terra` | `z-ai/glm-5.2` | Zhipu |
+
+Six labs — the same architectural-diversity structure as premium, not a compromise of it.
+
+### Hard constraint: JSON mode
+
+Round Table rounds 2+, the Deep Dive manager decomposition, and the All Angles Meta-Judge all send `response_format`. **Several tempting cheap models do not support it** — `minimax-m1`, `stepfun/step-3.5-flash`, and `tencent/hy3-preview` (the $0.06 one; `hy3` at $0.13 does). There is no runtime guard, so an unsupported pin fails mid-job. Every pin above was verified against `supported_parameters` for `response_format` + `tools` + `reasoning` before being committed. **Verify any future pin the same way.**
+
+### Related fixes shipped with this
+
+- **`AgentResponse.agentModel` now stores the *resolved* model** (tier applied, file-swap applied) rather than the configured default. This was cosmetic before; under Dragon it would have made transcripts actively misleading. Fixes the KB §12 item.
+- **`getModel()` deduplicated.** It was copy-pasted into all five orchestrators; all now delegate to `src/lib/model-tier.ts`.
+- **`FILE_MODEL_SWAPS` is tier-aware.** Three Dragon pins are text-only (`deepseek-r1-0528`, `tencent/hy3`, `glm-5.2`); they swap to `minimax/minimax-m3` (vision, 1M context) rather than falling back to a premium-priced Google model.
+- **`modelTier` surfaces in the UI** — a 🐉 DRAGON badge on the jobs list, child rows, and job detail header. Note it had to be threaded through *four* separate paths: the list API, the detail API, the SSE `progress` event, and two `setJob` merges on the detail page that cherry-pick fields.
+
+### Positioning note
+
+"Dragon" names the origin of the models. RightMind's own demo challenge is UK compliance software, and users in regulated sectors may have procurement or data-residency constraints on which jurisdiction serves inference. `provider.data_collection: "deny"` covers training-on-your-data; it says nothing about routing. The submit-page toggle names the labs in its tooltip for that reason.
+
+### Not yet measured
+
+Only Consensus Board has a like-for-like A/B. Stress Tester and Round Table on Dragon ran only as All Angles children ($0.09 and $0.11 respectively within that run). **Report quality has not been formally compared** — Dragon's report was ~20% shorter; whether it is materially worse is an open question.

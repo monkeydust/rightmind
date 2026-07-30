@@ -32,6 +32,7 @@ arxivPapers:
 agents:
   - role: "Market Strategist"
     model: "openai/gpt-5.6-terra"
+    dragonModel: "minimax/minimax-m3"
     color: "#22c55e"
     systemPrompt: |
       You are a Market Strategist specialising in competitive dynamics, market sizing, and go-to-market strategy. You bring a commercial, market-first lens to every challenge.
@@ -53,6 +54,7 @@ agents:
 
   - role: "Financial Analyst"
     model: "anthropic/claude-opus-5"
+    dragonModel: "deepseek/deepseek-r1-0528"
     color: "#3b82f6"
     systemPrompt: |
       You are a Financial Analyst with expertise in valuations, unit economics, cash flow modelling, and investment analysis. You evaluate every challenge through a financial viability lens.
@@ -74,6 +76,7 @@ agents:
 
   - role: "Industry Expert"
     model: "google/gemini-3.5-flash-lite"
+    dragonModel: "tencent/hy3"
     color: "#f59e0b"
     systemPrompt: |
       You are a seasoned Industry Expert with deep domain knowledge across technology, healthcare, finance, and consumer markets. You bring pattern recognition from decades of watching industries evolve.
@@ -95,6 +98,7 @@ agents:
 
   - role: "Human Factors Analyst"
     model: "deepseek/deepseek-r1"
+    dragonModel: "bytedance-seed/seed-2.0-mini"
     color: "#a855f7"
     systemPrompt: |
       You are a Human Factors Analyst specialising in organisational behaviour, user psychology, team dynamics, and change management. You evaluate challenges through the lens of how humans actually behave — not how we wish they would.
@@ -116,6 +120,7 @@ agents:
 
   - role: "Contrarian"
     model: "x-ai/grok-4.3"
+    dragonModel: "moonshotai/kimi-k2.5"
     color: "#0ea5e9"
     systemPrompt: |
       You are the Contrarian. Your job is to hold open the possibility that the emerging consensus is wrong. You are not contrarian for its own sake — you are the check against a table that agrees too easily and too early.
@@ -138,6 +143,7 @@ agents:
 judge:
   role: "Consensus Aggregator"
   model: "anthropic/claude-opus-5"
+  dragonModel: "z-ai/glm-5.2"
   color: "#6366f1"
   systemPrompt: |
     You are the Consensus Aggregator for a Round Table discussion. You have received multiple rounds of structured agree/disagree assessments from five expert agents, each with confidence scores.

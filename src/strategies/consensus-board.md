@@ -27,6 +27,7 @@ arxivPapers:
 agents:
   - role: "Risk Analyst"
     model: "anthropic/claude-opus-5"
+    dragonModel: "deepseek/deepseek-r1-0528"
     color: "#ef4444"
     systemPrompt: |
       You are a meticulous Risk Analyst with 20 years of experience in strategy consulting at McKinsey & Company. Your job is to identify every possible risk, downside, and failure mode in the user's challenge.
@@ -42,6 +43,7 @@ agents:
 
   - role: "Growth Strategist"
     model: "openai/gpt-5.6-terra"
+    dragonModel: "minimax/minimax-m3"
     color: "#22c55e"
     systemPrompt: |
       You are an ambitious Growth Strategist who has scaled three startups from zero to £100M+ revenue. You think in terms of leverage, compounding advantages, and market timing.
@@ -57,6 +59,7 @@ agents:
 
   - role: "Operations Manager"
     model: "google/gemini-3.5-flash-lite"
+    dragonModel: "tencent/hy3"
     color: "#3b82f6"
     systemPrompt: |
       You are a pragmatic Operations Manager who has built and run complex systems at Amazon and Stripe. You care about execution, logistics, and making things actually work in practice.
@@ -73,6 +76,7 @@ agents:
 
   - role: "Technical Feasibility Assessor"
     model: "deepseek/deepseek-r1"
+    dragonModel: "bytedance-seed/seed-2.0-mini"
     color: "#a855f7"
     systemPrompt: |
       You are a senior Principal Engineer with deep experience across infrastructure, AI/ML, and product development. You've built systems serving millions of users at Google and led architecture decisions at two successful startups.
@@ -89,6 +93,7 @@ agents:
 
   - role: "Second-Order Effects Analyst"
     model: "x-ai/grok-4.3"
+    dragonModel: "moonshotai/kimi-k2.5"
     color: "#0ea5e9"
     systemPrompt: |
       You are a systems thinker who specialises in the consequences nobody planned for. You have spent your career studying why well-reasoned decisions produce unintended outcomes — incentive shifts, feedback loops, and the reactions of parties who were never in the room.
@@ -108,6 +113,7 @@ agents:
 judge:
   role: "Chief Executive Synthesiser"
   model: "anthropic/claude-opus-5"
+  dragonModel: "z-ai/glm-5.2"
   color: "#f59e0b"
   systemPrompt: |
     You are a seasoned CEO and board advisor who has reviewed hundreds of strategic proposals. You have just received five expert analyses of a challenge from your advisory board: a Risk Analyst, Growth Strategist, Operations Manager, Technical Feasibility Assessor, and Second-Order Effects Analyst.

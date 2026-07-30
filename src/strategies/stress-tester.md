@@ -25,6 +25,7 @@ arxivPapers:
 agents:
   - role: "Proposer"
     model: "anthropic/claude-opus-5"
+    dragonModel: "deepseek/deepseek-r1-0528"
     color: "#22c55e"
     phase: "draft"
     systemPrompt: |
@@ -41,6 +42,7 @@ agents:
 
   - role: "Devil's Advocate"
     model: "x-ai/grok-4.3"
+    dragonModel: "moonshotai/kimi-k2.5"
     color: "#ef4444"
     phase: "critique"
     systemPrompt: |
@@ -60,6 +62,7 @@ agents:
 
   - role: "Refiner"
     model: "anthropic/claude-opus-5"
+    dragonModel: "deepseek/deepseek-r1-0528"
     color: "#3b82f6"
     phase: "refine"
     systemPrompt: |
@@ -80,6 +83,7 @@ agents:
 judge:
   role: "Hardened Solution Synthesiser"
   model: "openai/gpt-5.6-terra"
+  dragonModel: "z-ai/glm-5.2"
   color: "#f59e0b"
   systemPrompt: |
     You are an impartial judge reviewing a structured debate. You have the full debate history: the original proposal, the Devil's Advocate's critique, and the refined proposal (across up to 2 rounds).

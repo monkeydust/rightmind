@@ -51,6 +51,21 @@ Models are pinned per role in `src/strategies/*.md` — change them there, no co
 | 🤝 Round Table | Market `gpt-5.6-terra` · Financial `claude-opus-5` · Industry `gemini-3.5-flash-lite` · Human Factors `deepseek-r1` · Contrarian `grok-4.3` | `claude-opus-5` |
 | 🔮 All Angles | *(runs the four above)* | Meta-Judge `claude-opus-5` |
 
+### 🐉 Dragon mode — the same panel, ~14× cheaper
+
+Tick **Dragon** on the submit bar and the whole panel switches to a cheaper roster of open-weight models. Same strategies, same prompts, same structure — different labs.
+
+| | Premium | Dragon |
+|---|---:|---:|
+| Consensus Board | $0.90 / 8 min | **$0.06 / 4.5 min** |
+| All Angles | ~$3.60 | **$0.53** |
+
+Measured on the identical challenge, not estimated. Dragon came out **14× cheaper and nearly 2× faster** — the cheaper models also think and search less, so they burn far fewer tokens.
+
+The diversity argument survives intact, because Dragon is still six independent labs: **DeepSeek**, **MiniMax**, **Tencent**, **ByteDance**, **Moonshot**, and **Zhipu**. It's arguably the sharper test of the whole premise — if a heterogeneous panel of cheap models beats one expensive model, that's the strongest version of the claim.
+
+Jobs are labelled with a 🐉 DRAGON badge so you always know which roster produced a report. Worth knowing: these models are served by their respective labs' providers, which may matter if you have data-residency or procurement constraints.
+
 ### What it actually costs
 
 A measured Consensus Board run (5 agents + judge, a real strategy question) came to **$0.90 and 8 minutes** — 112k tokens. Worth knowing where that goes: the two Claude Opus 5 calls were **95% of the bill**. Opus 5 thinks by default and searches the web hard, so on the same prompt it pulled 21k input tokens where Gemini pulled 321.

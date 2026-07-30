@@ -10,13 +10,14 @@ import { prisma } from "@/lib/db";
 import { callModel, parseJSON } from "@/lib/llm";
 import { isJobCancelled, clearCancellation } from "@/lib/cancellation";
 import { onJobComplete, onJobFailed } from "@/lib/job-complete";
-import { buildUserContent, resolveAgentModel } from "@/lib/file-content";
+import { buildUserContent } from "@/lib/file-content";
+import { resolveTierModel } from "@/lib/model-tier";
 import { getStrategyById } from "@/lib/strategies";
 import { orchestrateParallelAggregate } from "./parallel-aggregate";
 import { orchestrateSequentialDebate } from "./sequential-debate";
 import { orchestrateManagerWorker } from "./manager-worker";
 import { orchestrateMultiRoundConsensus } from "./multi-round-consensus";
-import type { StrategyConfig, AgentStepProgress, FileAttachment } from "@/lib/types";
+import type { StrategyConfig, AgentStepProgress, FileAttachment, ModelTier } from "@/lib/types";
 
 interface OrchestrationOptions {
   jobId: string;
@@ -25,6 +26,7 @@ interface OrchestrationOptions {
   promptOverrides?: Record<string, string>;
   includeReasoning?: boolean;
   file?: FileAttachment;
+  modelTier?: ModelTier;
 }
 
 const CHILD_STRATEGIES = [
@@ -80,6 +82,7 @@ export async function orchestrateAllAngles({
   promptOverrides,
   includeReasoning,
   file,
+  modelTier = "premium",
 }: OrchestrationOptions): Promise<void> {
   const judgeRole = strategy.judge.role;
 
@@ -126,6 +129,7 @@ export async function orchestrateAllAngles({
           challenge,
           strategyId,
           executionMode: "instant",
+          modelTier,
           status: "PENDING",
           progress: JSON.stringify([]),
           parentJobId: jobId,
@@ -158,6 +162,7 @@ export async function orchestrateAllAngles({
             promptOverrides,
             includeReasoning,
             file,
+            modelTier,
           });
           // Mark done
           steps[idx].status = "done";
@@ -219,7 +224,7 @@ export async function orchestrateAllAngles({
     const judgeUserMsg = `# Original Challenge\n\n${challenge}\n\n===\n\n# Strategy Reports\n\n${reportsText}`;
 
     const judgeResponse = await callModel(
-      resolveAgentModel(strategy.judge.model, file),
+      resolveTierModel(strategy.judge, modelTier, file),
       [
         { role: "system", content: judgePrompt },
         { role: "user", content: await buildUserContent(judgeUserMsg, file) },

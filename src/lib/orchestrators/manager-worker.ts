@@ -10,12 +10,14 @@ import { prisma } from "@/lib/db";
 import { callModel, parseJSON } from "@/lib/llm";
 import { isJobCancelled, clearCancellation } from "@/lib/cancellation";
 import { onJobComplete, onJobFailed } from "@/lib/job-complete";
-import { buildUserContent, resolveAgentModel } from "@/lib/file-content";
+import { buildUserContent } from "@/lib/file-content";
+import { getModelForRole, resolveModelForRole, resolveTierModel } from "@/lib/model-tier";
 import type {
   StrategyConfig,
   AgentStepProgress,
   ManagerDecomposition,
   FileAttachment,
+  ModelTier,
 } from "@/lib/types";
 
 interface OrchestrationOptions {
@@ -25,6 +27,7 @@ interface OrchestrationOptions {
   promptOverrides?: Record<string, string>;
   includeReasoning?: boolean;
   file?: FileAttachment;
+  modelTier?: ModelTier;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -58,11 +61,8 @@ function getPrompt(
   throw new Error(`No prompt found for role: ${role}`);
 }
 
-function getModel(strategy: StrategyConfig, role: string): string {
-  const agent = strategy.agents.find((a) => a.role === role);
-  if (agent) return agent.model;
-  if (strategy.judge.role === role) return strategy.judge.model;
-  throw new Error(`No model found for role: ${role}`);
+function getModel(strategy: StrategyConfig, role: string, tier: ModelTier): string {
+  return getModelForRole(strategy, role, tier);
 }
 
 /** Build reasoning options only if the user opted in */
@@ -80,6 +80,7 @@ export async function orchestrateManagerWorker({
   promptOverrides,
   includeReasoning,
   file,
+  modelTier = "premium",
 }: OrchestrationOptions): Promise<void> {
   const managerRole = "Manager";
   const workerRole = "Specialist Worker";
@@ -87,9 +88,9 @@ export async function orchestrateManagerWorker({
   const maxSubTasks = strategy.maxSubTasks ?? 5;
 
   const steps: AgentStepProgress[] = [
-    { agentRole: managerRole, agentModel: getModel(strategy, managerRole), status: "pending" },
-    { agentRole: workerRole, agentModel: getModel(strategy, workerRole), status: "pending" },
-    { agentRole: judgeRole, agentModel: getModel(strategy, judgeRole), status: "pending" },
+    { agentRole: managerRole, agentModel: resolveModelForRole(strategy, managerRole, modelTier, file), status: "pending" },
+    { agentRole: workerRole, agentModel: resolveModelForRole(strategy, workerRole, modelTier, file), status: "pending" },
+    { agentRole: judgeRole, agentModel: resolveModelForRole(strategy, judgeRole, modelTier, file), status: "pending" },
   ];
 
   try {
@@ -105,7 +106,7 @@ export async function orchestrateManagerWorker({
     await updateProgress(jobId, "decompose", steps);
 
     const managerPrompt = getPrompt(strategy, managerRole, promptOverrides);
-    const managerModel = resolveAgentModel(getModel(strategy, managerRole), file);
+    const managerModel = resolveModelForRole(strategy, managerRole, modelTier, file);
     const managerMessages = [
       { role: "system" as const, content: managerPrompt },
       { role: "user" as const, content: await buildUserContent(challenge, file) },
@@ -144,7 +145,7 @@ export async function orchestrateManagerWorker({
       data: {
         jobId,
         agentRole: managerRole,
-        agentModel: getModel(strategy, managerRole),
+        agentModel: managerModel,
         round: 1,
         phase: "decompose",
         prompt: managerPrompt,
@@ -177,7 +178,7 @@ export async function orchestrateManagerWorker({
     // Update steps to include individual worker tasks
     const workerSteps: AgentStepProgress[] = subTasks.map((t) => ({
       agentRole: `${workerRole} — ${t.title}`,
-      agentModel: getModel(strategy, workerRole),
+      agentModel: resolveModelForRole(strategy, workerRole, modelTier, file),
       status: "pending" as const,
     }));
 
@@ -191,7 +192,7 @@ export async function orchestrateManagerWorker({
     console.log(`[Job ${jobId}] Phase 2: Executing ${subTasks.length} sub-tasks in parallel...`);
 
     const workerPrompt = getPrompt(strategy, workerRole, promptOverrides);
-    const workerModel = getModel(strategy, workerRole);
+    const workerModel = resolveModelForRole(strategy, workerRole, modelTier, file);
 
     const workerResults = await Promise.all(
       subTasks.map(async (task, idx) => {
@@ -204,7 +205,7 @@ export async function orchestrateManagerWorker({
         const taskPromptForWorker = `## Sub-Task ${task.id}: ${task.title}\n\n${task.description}\n\n**Expertise needed:** ${task.expertise_needed}\n**Expected output:** ${task.expected_output}`;
 
         const workerResponse = await callModel(
-          resolveAgentModel(workerModel, file),
+          workerModel,
           [
             { role: "system", content: workerPrompt },
             { role: "user", content: await buildUserContent(taskPromptForWorker, file) },
@@ -268,7 +269,7 @@ export async function orchestrateManagerWorker({
     const judgeUserMessage = `# Original Challenge\n\n${challenge}\n\n---\n\n# Manager's Decomposition\n\n**Summary:** ${decomposition.challenge_summary}\n**Rationale:** ${decomposition.decomposition_rationale}\n\n---\n\n# Specialist Worker Outputs\n\n${workerOutputs}`;
 
     const judgeResponse = await callModel(
-      resolveAgentModel(getModel(strategy, judgeRole), file),
+      resolveModelForRole(strategy, judgeRole, modelTier, file),
       [
         { role: "system", content: judgePrompt },
         { role: "user", content: await buildUserContent(judgeUserMessage, file) },
@@ -281,7 +282,7 @@ export async function orchestrateManagerWorker({
       data: {
         jobId,
         agentRole: judgeRole,
-        agentModel: getModel(strategy, judgeRole),
+        agentModel: resolveModelForRole(strategy, judgeRole, modelTier, file),
         round: 1,
         phase: "review",
         prompt: judgePrompt,

@@ -73,6 +73,7 @@ model AdvisorJob {
   fileName      String?  // Original filename if a file was uploaded (e.g. "business-plan.pdf")
   strategyId    String   // Maps to strategy config id (e.g. "consensus-board")
   executionMode String   @default("instant") // "instant" or "overnight"
+  modelTier     String   @default("premium") // "premium" or "dragon" model roster
   status        String   @default("PENDING") // PENDING | RUNNING | DONE | FAILED
   progress      String   @default("[]") // JSON array of step completions
   report        String?  // Final markdown report (null until complete)

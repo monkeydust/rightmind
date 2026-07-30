@@ -67,6 +67,7 @@ interface JobData {
   challenge?: string;
   fileName?: string;
   strategyId?: string;
+  modelTier?: string;
   report?: string;
   error?: string;
   totalCostUsd?: number;
@@ -789,7 +790,7 @@ export default function JobDetailPage() {
         .then((r) => r.json())
         .then((full) => {
           if (full.followUps) {
-            setJob((prev) => ({ ...prev, followUps: full.followUps, totalCostUsd: full.totalCostUsd, totalTokens: full.totalTokens }));
+            setJob((prev) => ({ ...prev, followUps: full.followUps, totalCostUsd: full.totalCostUsd, totalTokens: full.totalTokens, modelTier: full.modelTier }));
           }
         })
         .catch(() => {});
@@ -833,6 +834,7 @@ export default function JobDetailPage() {
             followUps: data.followUps || [],
             totalCostUsd: data.totalCostUsd,
             totalTokens: data.totalTokens,
+            modelTier: data.modelTier,
           }));
         })
         .catch(() => {});
@@ -971,6 +973,14 @@ export default function JobDetailPage() {
           {job.strategyId && (
             <p style={{ fontSize: "12px", color: "var(--grey-light)", marginTop: "6px" }}>
               Strategy: {job.strategyId}
+              {job.modelTier === "dragon" && (
+                <span
+                  title="Ran on the Dragon roster — cheaper open-weight models (DeepSeek, MiniMax, Moonshot, Zhipu, Tencent, ByteDance)"
+                  style={{ marginLeft: "8px", fontSize: "10px", fontWeight: 700, color: "var(--claret)", border: "1px solid var(--claret)", borderRadius: "3px", padding: "1px 5px", letterSpacing: "0.04em" }}
+                >
+                  🐉 DRAGON
+                </span>
+              )}
               {job.fileName && (
                 <span style={{ marginLeft: "12px", padding: "2px 8px", background: "rgba(13,118,128,0.06)", border: "1px solid rgba(13,118,128,0.15)", borderRadius: "10px", fontSize: "11px", color: "var(--teal)" }}>
                   📎 {job.fileName}

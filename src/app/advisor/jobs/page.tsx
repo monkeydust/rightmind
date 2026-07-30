@@ -8,6 +8,7 @@ interface JobSummary {
   challenge: string;
   strategyId: string;
   status: string;
+  modelTier?: string;
   createdAt: string;
   completedAt: string | null;
 }
@@ -63,6 +64,7 @@ function JobRow({ job, onDelete }: { job: JobSummary; onDelete: (id: string) => 
                         challenge: cj.challenge,
                         strategyId: cj.strategyId,
                         status: cj.status,
+                        modelTier: cj.modelTier,
                         createdAt: cj.createdAt,
                         completedAt: cj.completedAt,
                       }))
@@ -139,6 +141,14 @@ function JobRow({ job, onDelete }: { job: JobSummary; onDelete: (id: string) => 
         <td data-label="Strategy" style={{ color: "var(--grey)", fontSize: "13px", whiteSpace: "nowrap" }}>
           <span style={{ marginRight: "4px" }}>{STRATEGY_ICONS[job.strategyId] || ""}</span>
           {job.strategyId}
+          {job.modelTier === "dragon" && (
+            <span
+              title="Ran on the Dragon roster — cheaper open-weight models"
+              style={{ marginLeft: "6px", fontSize: "10px", fontWeight: 700, color: "var(--claret)", border: "1px solid var(--claret)", borderRadius: "3px", padding: "1px 4px", letterSpacing: "0.04em" }}
+            >
+              🐉 DRAGON
+            </span>
+          )}
         </td>
         <td data-label="Status">
           <span

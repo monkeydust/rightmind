@@ -90,11 +90,18 @@ export function getStrategySummaries() {
     agents: s.agents.map((a) => ({
       role: a.role,
       model: a.model,
+      dragonModel: a.dragonModel,
       color: a.color,
       systemPrompt: a.systemPrompt,
     })),
     judge: s.judge
-      ? { role: s.judge.role, color: s.judge.color, systemPrompt: s.judge.systemPrompt }
+      ? {
+          role: s.judge.role,
+          model: s.judge.model,
+          dragonModel: s.judge.dragonModel,
+          color: s.judge.color,
+          systemPrompt: s.judge.systemPrompt,
+        }
       : undefined,
     arxivPapers: s.arxivPapers,
   }));

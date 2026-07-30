@@ -75,7 +75,13 @@ export function parseJSON<T = unknown>(raw: string): T {
  * a vision-capable alternative so every agent can see the document.
  */
 const FILE_MODEL_SWAPS: Record<string, string> = {
+  // Premium tier
   "deepseek/deepseek-r1": "google/gemini-3.1-pro-preview",
+  // Dragon tier — stay inside the tier rather than falling back to a
+  // premium-priced vision model. minimax-m3 is vision-capable at 1M context.
+  "deepseek/deepseek-r1-0528": "minimax/minimax-m3",
+  "tencent/hy3": "minimax/minimax-m3",
+  "z-ai/glm-5.2": "minimax/minimax-m3",
 };
 
 export function resolveModel(model: string, hasFile: boolean): string {

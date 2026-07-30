@@ -19,6 +19,7 @@ arxivPapers:
 agents:
   - role: "Manager"
     model: "openai/gpt-5.6-terra"
+    dragonModel: "minimax/minimax-m3"
     color: "#f59e0b"
     phase: "plan"
     systemPrompt: |
@@ -50,6 +51,7 @@ agents:
 
   - role: "Specialist Worker"
     model: "google/gemini-3.5-flash-lite"
+    dragonModel: "tencent/hy3"
     color: "#3b82f6"
     phase: "execute"
     systemPrompt: |
@@ -71,6 +73,7 @@ agents:
 judge:
   role: "Manager — Final Review"
   model: "openai/gpt-5.6-terra"
+  dragonModel: "z-ai/glm-5.2"
   color: "#f59e0b"
   systemPrompt: |
     You are the Project Manager who originally decomposed the challenge into sub-tasks. Your specialists have now completed their work. You must review ALL specialist outputs and compile them into a comprehensive final report.

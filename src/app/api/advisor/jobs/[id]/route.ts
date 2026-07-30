@@ -29,6 +29,7 @@ export async function GET(
       fileName: true,
       strategyId: true,
       status: true,
+      modelTier: true,
       report: true,
       error: true,
       progress: true,

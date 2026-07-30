@@ -610,6 +610,7 @@ export default function AdvisorPage() {
   const [promptOverrides, setPromptOverrides] = useState<Record<string, string>>({});
   const [showPrompts, setShowPrompts] = useState(false);
   const [includeReasoning, setIncludeReasoning] = useState(false);
+  const [dragonMode, setDragonMode] = useState(false);
   const [allAngles, setAllAngles] = useState(false);
   const [demoMode, setDemoMode] = useState<number | null>(null); // index into EXAMPLE_CHALLENGES if a demo is selected
   const [recommendationRationale, setRecommendationRationale] = useState<{ id: string, text: string } | null>(null);
@@ -747,6 +748,7 @@ export default function AdvisorPage() {
           challenge: challenge.trim(),
           strategyId: allAngles ? "all-angles" : selectedStrategy,
           executionMode: "instant",
+          modelTier: dragonMode ? "dragon" : "premium",
           promptOverrides: Object.keys(promptOverrides).length > 0 ? promptOverrides : undefined,
           includeReasoning,
           ...(uploadedFile ? {
@@ -1066,6 +1068,20 @@ export default function AdvisorPage() {
                 style={{ width: "12px", height: "12px", accentColor: "var(--teal)", cursor: "pointer" }}
               />
               Reasoning
+            </label>
+
+            {/* Dragon tier — cheaper open-weight roster */}
+            <label
+              title="Run the panel on a cheaper roster of open-weight models (DeepSeek, MiniMax, Moonshot, Zhipu, Tencent, ByteDance) instead of the frontier models. Roughly 7x cheaper. Inference is served by those labs' providers."
+              style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", color: dragonMode ? "var(--claret)" : "var(--grey)", cursor: "pointer", userSelect: "none", fontWeight: dragonMode ? 600 : 400 }}
+            >
+              <input
+                type="checkbox"
+                checked={dragonMode}
+                onChange={(e) => setDragonMode(e.target.checked)}
+                style={{ width: "12px", height: "12px", accentColor: "var(--claret)", cursor: "pointer" }}
+              />
+              🐉 Dragon
             </label>
 
             {/* Advanced — toggles prompt editor */}

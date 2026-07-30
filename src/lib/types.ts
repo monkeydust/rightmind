@@ -16,6 +16,8 @@ export interface ArxivPaper {
 export interface AgentConfig {
   role: string;
   model: string;
+  /** Cheaper tier pin used when the job runs in Dragon mode */
+  dragonModel?: string;
   color: string;
   phase?: string; // Used by sequential strategies (stress-tester, deep-dive)
   systemPrompt: string;
@@ -24,6 +26,8 @@ export interface AgentConfig {
 export interface JudgeConfig {
   role: string;
   model: string;
+  /** Cheaper tier pin used when the job runs in Dragon mode */
+  dragonModel?: string;
   color: string;
   systemPrompt: string;
 }
@@ -68,6 +72,13 @@ export interface StrategyConfig {
 
 export type JobStatus = "PENDING" | "RUNNING" | "DONE" | "FAILED";
 export type ExecutionMode = "instant" | "overnight";
+
+/**
+ * Which model roster a job runs on.
+ * "premium" = frontier models (Claude/GPT/Gemini/DeepSeek/Grok).
+ * "dragon"  = cheaper, predominantly open-weight labs (~7x cheaper).
+ */
+export type ModelTier = "premium" | "dragon";
 
 export interface AgentStepProgress {
   agentRole: string;

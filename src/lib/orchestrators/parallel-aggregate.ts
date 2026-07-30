@@ -9,8 +9,9 @@ import { prisma } from "@/lib/db";
 import { callModel } from "@/lib/llm";
 import { isJobCancelled, clearCancellation } from "@/lib/cancellation";
 import { onJobComplete, onJobFailed } from "@/lib/job-complete";
-import { buildUserContent, resolveAgentModel } from "@/lib/file-content";
-import type { StrategyConfig, AgentStepProgress, FileAttachment } from "@/lib/types";
+import { buildUserContent } from "@/lib/file-content";
+import { getModelForRole, resolveModelForRole, resolveTierModel } from "@/lib/model-tier";
+import type { StrategyConfig, AgentStepProgress, FileAttachment, ModelTier } from "@/lib/types";
 
 interface OrchestrationOptions {
   jobId: string;
@@ -19,6 +20,7 @@ interface OrchestrationOptions {
   promptOverrides?: Record<string, string>;
   includeReasoning?: boolean;
   file?: FileAttachment;
+  modelTier?: ModelTier;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -49,11 +51,8 @@ function getPrompt(
   throw new Error(`No prompt found for role: ${role}`);
 }
 
-function getModel(strategy: StrategyConfig, role: string): string {
-  const agent = strategy.agents.find((a) => a.role === role);
-  if (agent) return agent.model;
-  if (strategy.judge.role === role) return strategy.judge.model;
-  throw new Error(`No model found for role: ${role}`);
+function getModel(strategy: StrategyConfig, role: string, tier: ModelTier): string {
+  return getModelForRole(strategy, role, tier);
 }
 
 function reasoningOpts(includeReasoning?: boolean) {
@@ -70,19 +69,20 @@ export async function orchestrateParallelAggregate({
   promptOverrides,
   includeReasoning,
   file,
+  modelTier = "premium",
 }: OrchestrationOptions): Promise<void> {
   const judgeRole = strategy.judge.role;
 
   // Build initial step list: all agents + judge
   const agentSteps: AgentStepProgress[] = strategy.agents.map((a) => ({
     agentRole: a.role,
-    agentModel: a.model,
+    agentModel: getModelForRole(strategy, a.role, modelTier),
     status: "pending" as const,
   }));
 
   const judgeStep: AgentStepProgress = {
     agentRole: judgeRole,
-    agentModel: getModel(strategy, judgeRole),
+    agentModel: resolveModelForRole(strategy, judgeRole, modelTier, file),
     status: "pending",
   };
 
@@ -106,7 +106,7 @@ export async function orchestrateParallelAggregate({
         await updateProgress(jobId, "analyse", [...agentSteps, judgeStep]);
 
         const prompt = getPrompt(strategy, agent.role, promptOverrides);
-        const model = resolveAgentModel(agent.model, file);
+        const model = resolveTierModel(agent, modelTier, file);
         const response = await callModel(
           model,
           [
@@ -121,7 +121,7 @@ export async function orchestrateParallelAggregate({
           data: {
             jobId,
             agentRole: agent.role,
-            agentModel: agent.model,
+            agentModel: model,
             round: 1,
             phase: "analyse",
             prompt,
@@ -167,7 +167,7 @@ export async function orchestrateParallelAggregate({
     const judgeUserMessage = `# Original Challenge\n\n${challenge}\n\n---\n\n# Advisory Board Analyses\n\n${advisorOutputs}`;
 
     const judgeResponse = await callModel(
-      resolveAgentModel(getModel(strategy, judgeRole), file),
+      resolveModelForRole(strategy, judgeRole, modelTier, file),
       [
         { role: "system", content: judgePrompt },
         { role: "user", content: await buildUserContent(judgeUserMessage, file) },
@@ -179,7 +179,7 @@ export async function orchestrateParallelAggregate({
       data: {
         jobId,
         agentRole: judgeRole,
-        agentModel: getModel(strategy, judgeRole),
+        agentModel: resolveModelForRole(strategy, judgeRole, modelTier, file),
         round: 1,
         phase: "synthesise",
         prompt: judgePrompt,

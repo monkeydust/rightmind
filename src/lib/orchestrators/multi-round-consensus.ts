@@ -13,8 +13,9 @@ import { prisma } from "@/lib/db";
 import { callModel, parseJSON } from "@/lib/llm";
 import { isJobCancelled, clearCancellation } from "@/lib/cancellation";
 import { onJobComplete, onJobFailed } from "@/lib/job-complete";
-import { buildUserContent, resolveAgentModel } from "@/lib/file-content";
-import type { StrategyConfig, AgentStepProgress, RoundTableResponse, FileAttachment } from "@/lib/types";
+import { buildUserContent } from "@/lib/file-content";
+import { getModelForRole, resolveModelForRole, resolveTierModel } from "@/lib/model-tier";
+import type { StrategyConfig, AgentStepProgress, RoundTableResponse, FileAttachment, ModelTier } from "@/lib/types";
 
 interface OrchestrationOptions {
   jobId: string;
@@ -23,6 +24,7 @@ interface OrchestrationOptions {
   promptOverrides?: Record<string, string>;
   includeReasoning?: boolean;
   file?: FileAttachment;
+  modelTier?: ModelTier;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -60,11 +62,8 @@ function getPrompt(
   throw new Error(`No prompt found for role: ${role}`);
 }
 
-function getModel(strategy: StrategyConfig, role: string): string {
-  const agent = strategy.agents.find((a) => a.role === role);
-  if (agent) return agent.model;
-  if (strategy.judge.role === role) return strategy.judge.model;
-  throw new Error(`No model found for role: ${role}`);
+function getModel(strategy: StrategyConfig, role: string, tier: ModelTier): string {
+  return getModelForRole(strategy, role, tier);
 }
 
 function reasoningOpts(includeReasoning?: boolean) {
@@ -81,6 +80,7 @@ export async function orchestrateMultiRoundConsensus({
   promptOverrides,
   includeReasoning,
   file,
+  modelTier = "premium",
 }: OrchestrationOptions): Promise<void> {
   const maxRounds = strategy.maxRounds ?? 3;
   const consensusThreshold = strategy.consensusThreshold ?? 0.8;
@@ -93,14 +93,14 @@ export async function orchestrateMultiRoundConsensus({
     for (const agent of agents) {
       allSteps.push({
         agentRole: `${agent.role} (Round ${r})`,
-        agentModel: agent.model,
+        agentModel: getModelForRole(strategy, agent.role, modelTier),
         status: "pending",
       });
     }
   }
   const judgeStep: AgentStepProgress = {
     agentRole: judgeRole,
-    agentModel: getModel(strategy, judgeRole),
+    agentModel: resolveModelForRole(strategy, judgeRole, modelTier, file),
     status: "pending",
   };
   allSteps.push(judgeStep);
@@ -155,7 +155,7 @@ export async function orchestrateMultiRoundConsensus({
         }
 
         const response = await callModel(
-          resolveAgentModel(agent.model, file),
+          resolveTierModel(agent, modelTier, file),
           [
             { role: "system", content: prompt },
             { role: "user", content: await buildUserContent(userMsg, file) },
@@ -172,7 +172,7 @@ export async function orchestrateMultiRoundConsensus({
           data: {
             jobId,
             agentRole: agent.role,
-            agentModel: agent.model,
+            agentModel: resolveTierModel(agent, modelTier, file),
             round,
             phase: `round-${round}`,
             prompt,
@@ -263,7 +263,7 @@ export async function orchestrateMultiRoundConsensus({
     const judgeUserMsg = `# Original Challenge\n\n${challenge}\n\n---\n\n${allRoundData.join("\n\n---\n\n")}${consensusNote}`;
 
     const judgeResponse = await callModel(
-      resolveAgentModel(getModel(strategy, judgeRole), file),
+      resolveModelForRole(strategy, judgeRole, modelTier, file),
       [
         { role: "system", content: judgePrompt },
         { role: "user", content: await buildUserContent(judgeUserMsg, file) },
@@ -275,7 +275,7 @@ export async function orchestrateMultiRoundConsensus({
       data: {
         jobId,
         agentRole: judgeRole,
-        agentModel: getModel(strategy, judgeRole),
+        agentModel: resolveModelForRole(strategy, judgeRole, modelTier, file),
         round: roundsCompleted,
         phase: "aggregate",
         prompt: judgePrompt,

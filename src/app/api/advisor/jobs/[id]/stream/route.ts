@@ -83,6 +83,7 @@ export async function GET(
               status: job.status,
               challenge: job.challenge,
               strategyId: job.strategyId,
+              modelTier: job.modelTier,
               progress,
             });
           }
