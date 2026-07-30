@@ -13,7 +13,7 @@ interface DemoFixture {
   strategyId: string;
   status: string;
   report: string | null;
-  progress: string;
+  progress: string | Record<string, unknown>;
   agentResponses: {
     agentRole: string;
     agentModel: string;
@@ -30,7 +30,7 @@ interface DemoFixture {
     strategyId: string;
     status: string;
     report: string | null;
-    progress: string;
+    progress: string | Record<string, unknown>;
     agentResponses: {
       agentRole: string;
       agentModel: string;
@@ -46,6 +46,10 @@ interface DemoFixture {
 }
 
 const fixtures = demoFixtures as DemoFixture[];
+
+function toProgressString(progress: DemoFixture["progress"]): string {
+  return typeof progress === "string" ? progress : JSON.stringify(progress);
+}
 
 export async function seedDemoJobs(userId: string): Promise<void> {
   // Check if user already has jobs (don't seed twice)
@@ -66,7 +70,7 @@ export async function seedDemoJobs(userId: string): Promise<void> {
         strategyId: fixture.strategyId,
         status: fixture.status,
         report: fixture.report,
-        progress: fixture.progress,
+        progress: toProgressString(fixture.progress),
         executionMode: "instant",
         completedAt: new Date(),
       },
@@ -102,7 +106,7 @@ export async function seedDemoJobs(userId: string): Promise<void> {
             strategyId: child.strategyId,
             status: child.status,
             report: child.report,
-            progress: child.progress,
+            progress: toProgressString(child.progress),
             executionMode: "instant",
             parentJobId: job.id,
             completedAt: new Date(),
