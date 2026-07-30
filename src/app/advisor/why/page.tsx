@@ -81,7 +81,7 @@ export default function WhyPage() {
             diverse model architectures outperform a single model prompted with
             different personas
           </a>{" "}
-          because different model families (Claude, GPT, Gemini, DeepSeek)
+          because different model families (Claude, GPT, Gemini, DeepSeek, Grok)
           have genuinely independent reasoning paths and biases. Their agreement
           carries real signal. Their disagreements surface real tensions.
         </p>
@@ -120,8 +120,8 @@ export default function WhyPage() {
           </h3>
           <p style={{ margin: 0 }}>
             Your challenge is sent to a team of AI agents, each running on a
-            different state-of-the-art model (Claude Opus, GPT-5.5, Gemini
-            Flash, DeepSeek R1). Depending on which strategy you chose, they
+            different state-of-the-art model (Claude Opus, GPT-5, Gemini
+            Flash, DeepSeek R1, Grok). Depending on which strategy you chose, they
             work in parallel, debate adversarially, negotiate consensus, or
             decompose the problem into sub-tasks. Every agent has internet
             access for real-time data.
@@ -157,7 +157,7 @@ export default function WhyPage() {
             {
               icon: "🏛️",
               name: "Consensus Board",
-              desc: "Four specialists analyse independently, then a judge synthesises. Based on the Mixture-of-Agents paradigm.",
+              desc: "Five specialists analyse independently, then a judge synthesises. Based on the Mixture-of-Agents paradigm.",
               cite: "https://arxiv.org/abs/2411.03284",
               citeLabel: "SMoA",
               best: "Open-ended strategic questions",
@@ -232,7 +232,7 @@ export default function WhyPage() {
 
       <Section number="04" title="Why different models matter">
         <p>
-          RightMind deliberately uses models from <strong>four different
+          RightMind deliberately uses models from <strong>five different
           providers</strong>:
         </p>
         <ul style={{ paddingLeft: "20px", margin: "8px 0 16px", listStyle: "disc" }}>
@@ -241,7 +241,7 @@ export default function WhyPage() {
             with strong safety awareness
           </li>
           <li style={{ marginBottom: "6px" }}>
-            <strong>OpenAI GPT-5.5</strong>: Broad world knowledge with strong
+            <strong>OpenAI GPT-5</strong>: Broad world knowledge with strong
             structured output
           </li>
           <li style={{ marginBottom: "6px" }}>
@@ -251,6 +251,11 @@ export default function WhyPage() {
           <li style={{ marginBottom: "6px" }}>
             <strong>DeepSeek R1</strong>: Deep chain-of-thought reasoning with
             transparent thinking traces
+          </li>
+          <li style={{ marginBottom: "6px" }}>
+            <strong>xAI Grok</strong>: An independent architecture used for the
+            contrarian and second-order roles, where the job is to resist the
+            emerging consensus rather than join it
           </li>
         </ul>
         <p>

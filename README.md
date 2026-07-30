@@ -4,7 +4,7 @@
 
 You know when you ask ChatGPT something and it gives you a confident, polished answer? It's usually pretty good. But nobody pushed back on it. Nobody said "hang on, what about..." or "you're ignoring the fact that...". You just got one model's take and that was it.
 
-RightMind takes your question and throws it at multiple AI models (Claude, GPT, Gemini, DeepSeek) running in structured workflows. They debate, stress-test, and synthesise before anything reaches you. The argument already happened. You just get the result.
+RightMind takes your question and throws it at multiple AI models (Claude, GPT, Gemini, DeepSeek, Grok) running in structured workflows. They debate, stress-test, and synthesise before anything reaches you. The argument already happened. You just get the result.
 
 ## See it in action
 
@@ -28,7 +28,7 @@ Different problems need different approaches.
 
 | Strategy | How it works | Good for |
 |---|---|---|
-| 🏛️ **Consensus Board** | Four specialists analyse independently, then a judge pulls it together. Based on [Mixture-of-Agents](https://arxiv.org/abs/2411.03284). | Open-ended strategic questions |
+| 🏛️ **Consensus Board** | Five specialists analyse independently, then a judge pulls it together. Based on [Mixture-of-Agents](https://arxiv.org/abs/2411.03284). | Open-ended strategic questions |
 | 🔬 **Deep Dive** | A manager breaks your challenge into sub-tasks, specialists tackle each one in depth, then it's all integrated. Based on [hierarchical decomposition](https://arxiv.org/abs/2604.08931). | Complex problems with lots of dimensions |
 | ⚔️ **Stress Tester** | Someone builds the case, a devil's advocate tears it apart, a refiner strengthens what survives. Capped at 2 rounds so it doesn't [go off the rails](https://arxiv.org/abs/2502.19559). | When you've already got a plan and want it pressure-tested |
 | 🤝 **Round Table** | Multi-round discussion where agents score how much they agree or disagree with each other. Confidence scores feed forward into the next round. [Role-anchored](https://arxiv.org/abs/2604.19005) so nobody just caves to peer pressure. | Nuanced stuff that needs genuine negotiation |
@@ -37,7 +37,25 @@ Different problems need different approaches.
 
 ## Why different models matter
 
-This uses models from **four different providers**: Anthropic Claude, OpenAI GPT, Google Gemini, and DeepSeek R1. Each was trained on different data, with different architectures, by different teams with different priorities. [Research shows](https://arxiv.org/abs/2505.16997) that this kind of architectural diversity produces genuinely independent reasoning. That's what you want when you're trying to surface blind spots.
+This uses models from **five different providers**: Anthropic Claude, OpenAI GPT, Google Gemini, DeepSeek R1, and xAI Grok. Each was trained on different data, with different architectures, by different teams with different priorities. [Research shows](https://arxiv.org/abs/2505.16997) that this kind of architectural diversity produces genuinely independent reasoning. That's what you want when you're trying to surface blind spots.
+
+### Who's on the panel
+
+Models are pinned per role in `src/strategies/*.md` — change them there, no code required. Current roster (refreshed 2026-07-30):
+
+| Strategy | Agents | Judge |
+|---|---|---|
+| 🏛️ Consensus Board | Risk `claude-opus-5` · Growth `gpt-5.6-terra` · Ops `gemini-3.5-flash-lite` · Technical `deepseek-r1` · Second-Order Effects `grok-4.3` | `claude-opus-5` |
+| 🔬 Deep Dive | Manager `gpt-5.6-terra` · Workers `gemini-3.5-flash-lite` | `gpt-5.6-terra` |
+| ⚔️ Stress Tester | Proposer `claude-opus-5` · Devil's Advocate `grok-4.3` · Refiner `claude-opus-5` | `gpt-5.6-terra` |
+| 🤝 Round Table | Market `gpt-5.6-terra` · Financial `claude-opus-5` · Industry `gemini-3.5-flash-lite` · Human Factors `deepseek-r1` · Contrarian `grok-4.3` | `claude-opus-5` |
+| 🔮 All Angles | *(runs the four above)* | Meta-Judge `claude-opus-5` |
+
+### What it actually costs
+
+A measured Consensus Board run (5 agents + judge, a real strategy question) came to **$0.90 and 8 minutes** — 112k tokens. Worth knowing where that goes: the two Claude Opus 5 calls were **95% of the bill**. Opus 5 thinks by default and searches the web hard, so on the same prompt it pulled 21k input tokens where Gemini pulled 321.
+
+If that's too rich, the levers are in `src/strategies/*.md` and `src/lib/llm.ts`: swap Opus 5 for `claude-sonnet-5`, pass `reasoning: { effort: "low" }`, or set `webSearch: false` on roles that don't need live data. Cost and latency estimates shown in the UI are measured for Consensus Board and extrapolated for the rest — treat the others as rough.
 
 ## Things worth knowing about
 
@@ -203,7 +221,7 @@ src/
 - **Framework**: Next.js 16 (App Router, Turbopack)
 - **Auth**: Auth.js v5 (magic link + demo login)
 - **Database**: SQLite + Prisma ORM
-- **LLM Gateway**: OpenRouter (Claude, GPT, Gemini, DeepSeek)
+- **LLM Gateway**: OpenRouter (Claude, GPT, Gemini, DeepSeek, Grok)
 - **PDF**: Puppeteer + Chromium (server-side)
 - **Email**: Resend (production only)
 - **Styling**: Vanilla CSS

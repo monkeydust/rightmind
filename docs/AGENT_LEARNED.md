@@ -4,7 +4,7 @@
 
 ## What it does (elevator pitch)
 
-One AI gives one perspective. RightMind throws a user's question at **multiple LLMs from different providers** (Anthropic Claude, OpenAI GPT, Google Gemini, DeepSeek R1) running in structured workflows where they debate, stress-test, and synthesise before delivering a final report. Every agent can search the web live. The "argument already happened" — the user just gets the result.
+One AI gives one perspective. RightMind throws a user's question at **multiple LLMs from different providers** (Anthropic Claude, OpenAI GPT, Google Gemini, DeepSeek R1, xAI Grok) running in structured workflows where they debate, stress-test, and synthesise before delivering a final report. Every agent can search the web live. The "argument already happened" — the user just gets the result.
 
 The pipeline a user experiences:
 1. **Refine** — a lightweight model asks targeted clarifying questions and classifies the problem type, picking the best strategy automatically ("Smart Refine").
@@ -18,7 +18,7 @@ Each strategy is defined as a Markdown file with YAML frontmatter in `src/strate
 
 | Strategy | Workflow type | Orchestrator file | Mechanism |
 |---|---|---|---|
-| 🏛️ Consensus Board | `parallel_aggregate` | `parallel-aggregate.ts` | 4 specialists analyse in parallel independently → Judge synthesises into Go/No-Go verdict. Fastest (~15–30s). Based on SMoA. |
+| 🏛️ Consensus Board | `parallel_aggregate` | `parallel-aggregate.ts` | 5 specialists analyse in parallel independently → Judge synthesises into Go/No-Go verdict. Fastest (~15–30s). Based on SMoA. |
 | 🔬 Deep Dive | `manager_worker` | `manager-worker.ts` | A manager breaks the challenge into sub-tasks; specialists tackle each; integration. Hierarchical decomposition. |
 | ⚔️ Stress Tester | `sequential_debate` | `sequential-debate.ts` | Build case → devil's advocate tears it apart → refiner strengthens. **Capped at 2 rounds** (research: debates drift past 2–3 rounds). |
 | 🤝 Round Table | `multi_round_consensus` | `multi-round-consensus.ts` | Multi-round discussion; agents score agreement/disagreement + **confidence (0–1)** which feeds forward. Role-anchored (RADAR) so nobody caves to peer pressure. |
@@ -91,7 +91,7 @@ src/
 ## Key design decisions
 
 ### Models & providers
-- Strategies pin **specific models per agent role** (e.g. Risk Analyst = `anthropic/claude-opus-4-7`, Growth Strategist = `openai/gpt-5.4`). Architectural diversity is the whole point — heterogeneous models surface blind spots a single model can't.
+- Strategies pin **specific models per agent role** (e.g. Risk Analyst = `anthropic/claude-opus-5`, Growth Strategist = `openai/gpt-5.6-terra`). Architectural diversity is the whole point — heterogeneous models surface blind spots a single model can't.
 - **File model swap**: when a file is attached, text-only models get swapped to a vision-capable equivalent (e.g. DeepSeek R1 → `google/gemini-3.1-pro-preview`). See `FILE_MODEL_SWAPS` in `llm.ts`.
 - **PDF parsing** uses OpenRouter's `file-parser` plugin with Cloudflare-AI engine (chosen to avoid Mistral OCR costs).
 - **Privacy**: requests set `provider.data_collection: "deny"`.

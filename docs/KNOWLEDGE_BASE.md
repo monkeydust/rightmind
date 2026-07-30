@@ -10,16 +10,16 @@
 
 **One-line:** RightMind takes a user's problem, runs it through a panel of AI agents on *different* models from *different* providers in a structured workflow, and returns a synthesised report where the disagreement has already happened.
 
-The premise is that a single LLM gives you a single, unchallenged perspective. RightMind forces structured adversarial and collaborative processes — parallel analysis, hierarchical decomposition, adversarial debate, multi-round negotiation — before anything reaches the user. Model heterogeneity (Anthropic / OpenAI / Google / DeepSeek) is deliberate: different training data and architectures produce genuinely independent reasoning, which is what surfaces blind spots.
+The premise is that a single LLM gives you a single, unchallenged perspective. RightMind forces structured adversarial and collaborative processes — parallel analysis, hierarchical decomposition, adversarial debate, multi-round negotiation — before anything reaches the user. Model heterogeneity (Anthropic / OpenAI / Google / DeepSeek / xAI) is deliberate: different training data and architectures produce genuinely independent reasoning, which is what surfaces blind spots.
 
 ### The four-stage user pipeline
 
 | Stage | What happens |
 |---|---|
-| **1. Refine** | A lightweight model (`google/gemini-3.1-flash-lite-preview`) asks 4–6 clarifying questions, then synthesises a sharpened challenge, classifies the problem type, and auto-selects the best strategy ("Smart Refine"). |
+| **1. Refine** | A lightweight model (`google/gemini-3.1-flash-lite`) asks 4–6 clarifying questions, then synthesises a sharpened challenge, classifies the problem type, and auto-selects the best strategy ("Smart Refine"). |
 | **2. Analyse** | The challenge goes to a panel of agents on different models, executing one of five workflow topologies. Every non-JSON agent call has live web search enabled. |
 | **3. Synthesise** | A Judge agent reads everything the panel produced and writes the final markdown report — agreements, disagreements, verdict, next steps. |
-| **4. Follow up** | Threaded follow-up Q&A on `openai/gpt-5.4`, replaying the full conversation history (challenge → report → every prior turn) on each turn. |
+| **4. Follow up** | Threaded follow-up Q&A on `openai/gpt-5.6-terra`, replaying the full conversation history (challenge → report → every prior turn) on each turn. |
 
 ---
 
@@ -30,7 +30,7 @@ The premise is that a single LLM gives you a single, unchallenged perspective. R
 | Framework | Next.js **16.2.4** (App Router, Turbopack), React **19.2.4** |
 | Auth | Auth.js v5 (`next-auth ^5.0.0-beta.31`) — magic link only, database sessions |
 | Database | SQLite + Prisma **^6.19.3** (client generated to `src/generated/prisma/`, gitignored) |
-| LLM gateway | **OpenRouter** (sole gateway — Claude, GPT, Gemini, DeepSeek) |
+| LLM gateway | **OpenRouter** (sole gateway — Claude, GPT, Gemini, DeepSeek, Grok) |
 | Graph UI | `@xyflow/react` **^12.11.1** (ReactFlow) |
 | PDF | `puppeteer-core` **^25.1.0** + `marked` **^18.0.4**, system Chromium |
 | Email | Resend **^6.12.2** (prod only; dev prints magic link to terminal) |
@@ -53,24 +53,26 @@ Strategies are **data, not code**: Markdown files with YAML frontmatter in `src/
 |---|---|---|---|---|---|
 | `id` | `consensus-board` | `deep-dive` | `stress-tester` | `round-table` | `all-angles` |
 | `workflow` | `parallel_aggregate` | `manager_worker` | `sequential_debate` | `multi_round_consensus` | `all_angles` |
-| Topology | 4 parallel → judge | decompose → K workers → review | proposer→critic→refiner ×2 → judge | 4 agents × up to 3 rounds → judge | all four + meta-judge |
+| Topology | 5 parallel → judge | decompose → K workers → review | proposer→critic→refiner ×2 → judge | 5 agents × up to 3 rounds → judge | all four + meta-judge |
 | Rounds / tasks | 1 | `maxSubTasks: 5` | `maxRounds: 2` | `maxRounds: 3`, `consensusThreshold: 0.8` | 1 |
-| LLM calls | 5 | 2 + K (K≤5) | 7 | ≤13 (early exit) | ~27–30 + 1 |
+| LLM calls | 6 | 2 + K (K≤5) | 7 | ≤16 (early exit) | ~32–36 + 1 |
 | Est. latency | ~15–30 s | ~30–60 s | ~45–90 s | ~60–120 s | ~3–5 min |
 | Est. cost | £0.50–£2.00 | £1.00–£3.00 | £1.00–£4.00 | £1.50–£5.00 | £5.00–£15.00 |
 | Best for | Open-ended strategy | Complex, many-dimensioned | Pressure-testing a plan | Nuanced negotiation | High-stakes decisions |
 
 ### Agent rosters (model diversity is the point)
 
-**Consensus Board** — Risk Analyst `claude-opus-4-7` · Growth Strategist `gpt-5.4` · Operations Manager `gemini-2.5-flash` · Technical Feasibility Assessor `deepseek-r1` → Judge: Chief Executive Synthesiser `claude-opus-4-8`
+Refreshed 2026-07-30 — see §14 for the rationale and the previous roster.
 
-**Deep Dive** — Manager `gpt-5.4` (phase `plan`) · Specialist Worker `gemini-2.5-flash` (phase `execute`) → Judge: Manager — Final Review `gpt-5.4`
+**Consensus Board** — Risk Analyst `claude-opus-5` · Growth Strategist `gpt-5.6-terra` · Operations Manager `gemini-3.5-flash-lite` · Technical Feasibility Assessor `deepseek-r1` · Second-Order Effects Analyst `grok-4.3` → Judge: Chief Executive Synthesiser `claude-opus-5`
 
-**Stress Tester** — Proposer `claude-opus-4-7` (`draft`) · Devil's Advocate `gpt-5.4` (`critique`) · Refiner `claude-opus-4-7` (`refine`) → Judge: Hardened Solution Synthesiser `gemini-2.5-flash`
+**Deep Dive** — Manager `gpt-5.6-terra` (phase `plan`) · Specialist Worker `gemini-3.5-flash-lite` (phase `execute`) → Judge: Manager — Final Review `gpt-5.6-terra`
 
-**Round Table** — Market Strategist `gpt-5.4` · Financial Analyst `claude-opus-4-7` · Industry Expert `gemini-2.5-flash` · Human Factors Analyst `deepseek-r1` → Judge: Consensus Aggregator `claude-opus-4-7`
+**Stress Tester** — Proposer `claude-opus-5` (`draft`) · Devil's Advocate `grok-4.3` (`critique`) · Refiner `claude-opus-5` (`refine`) → Judge: Hardened Solution Synthesiser `gpt-5.6-terra`
 
-**All Angles** — no own agents; Meta-Judge `claude-opus-4-8`
+**Round Table** — Market Strategist `gpt-5.6-terra` · Financial Analyst `claude-opus-5` · Industry Expert `gemini-3.5-flash-lite` · Human Factors Analyst `deepseek-r1` · Contrarian `grok-4.3` → Judge: Consensus Aggregator `claude-opus-5`
+
+**All Angles** — no own agents; Meta-Judge `claude-opus-5`
 
 ---
 
@@ -87,7 +89,7 @@ async function orchestrateX({
 They are **fire-and-forget** — never awaited by the route, errors swallowed into DB status. Shared private helpers are *duplicated* in each file (not imported): `updateProgress()`, `getPrompt()`, `getModel()`, `reasoningOpts()`.
 
 ### 4.1 Consensus Board — `parallel-aggregate.ts`
-Phase `analyse`: one `Promise.all` over 4 agents (temp 0.6). Phase `synthesise`: 1 judge call (temp 0.5, `max_tokens: 16384`) receiving `# Original Challenge` + each agent's output under `## {role}`. No JSON intermediates. Report = raw judge markdown.
+Phase `analyse`: one `Promise.all` over 5 agents (temp 0.6). Phase `synthesise`: 1 judge call (temp 0.5, `max_tokens: 16384`) receiving `# Original Challenge` + each agent's output under `## {role}`. No JSON intermediates. Report = raw judge markdown.
 
 ### 4.2 Deep Dive — `manager-worker.ts`
 1. **`decompose`** — Manager call with `json: true`, temp 0.4, wrapped in a **2-attempt retry** on `parseJSON` failure. Returns `ManagerDecomposition`:
@@ -107,7 +109,7 @@ Fully sequential, no parallelism. Per round: Proposer (`draft`) → Devil's Advo
 Capped at 2 rounds by design — debates beyond 2–3 rounds drift (arXiv 2502.19559).
 
 ### 4.4 Round Table — `multi-round-consensus.ts`
-The most elaborate. Rounds are sequential; within a round all 4 agents run via `Promise.all`.
+The most elaborate. Rounds are sequential; within a round all 5 agents run via `Promise.all`.
 - Round 1: bare challenge, plain markdown.
 - Rounds 2+: `json: true`, returning `RoundTableResponse`:
   ```ts
@@ -286,7 +288,7 @@ No SSE, follow-up, PDF, cancel or delete under `/v1`.
 - ⚠️ No heartbeat frame, no max duration, and `CANCELLED` isn't terminal — a cancelled job's stream polls until the client closes it.
 
 ### 7.6 Refine (Smart Refine)
-Model **`google/gemini-3.1-flash-lite-preview`**, two steps:
+Model **`google/gemini-3.1-flash-lite`**, two steps:
 - `"questions"` — 4–6 clarifying questions, types `multi | yesno | scale`, with pre-defined options.
 - `"synthesise"` — returns `{ refined, category, recommended_strategy, rationale }`. Newly-inferred detail is wrapped in `[[double brackets]]` so the UI can highlight it.
 
@@ -302,7 +304,7 @@ Model **`google/gemini-3.1-flash-lite-preview`**, two steps:
 `callAndParse()` retries once on parse failure.
 
 ### 7.7 Follow-ups
-Model **`openai/gpt-5.4`**, temp 0.5, `max_tokens: 16384`. Message array replays the entire history every turn:
+Model **`openai/gpt-5.6-terra`**, temp 0.5, `max_tokens: 16384`. Message array replays the entire history every turn:
 `system` → `user: challenge` → `assistant: report` → each prior `{user prompt, assistant response}` → new prompt. **Nothing is summarised or truncated.**
 
 ⚠️ Attachment handling here is weaker than the main pipeline: PDFs/text are base64-decoded as UTF-8 (mojibake for real binary PDFs), and images become a `[Attached image: name]` placeholder only.
@@ -437,7 +439,7 @@ Every design decision maps to published work. Load-bearing ones:
 | Paper | What it drives |
 |---|---|
 | [SMoA: Sparse Mixture-of-Agents](https://arxiv.org/abs/2411.03284) | Consensus Board topology |
-| [X-MAS: Heterogeneous LLMs](https://arxiv.org/abs/2505.16997) | Why models are pinned per role across four providers |
+| [X-MAS: Heterogeneous LLMs](https://arxiv.org/abs/2505.16997) | Why models are pinned per role across five providers |
 | [ReConcile](https://arxiv.org/abs/2309.13007) | Round Table multi-round agree/disagree |
 | [RADAR](https://arxiv.org/abs/2604.19005) | Role anchoring — "YOUR ROLE IS FIXED" |
 | [Problem Drift in Debate](https://arxiv.org/abs/2502.19559) | 2-round cap + challenge re-injection |
@@ -447,3 +449,74 @@ Every design decision maps to published work. Load-bearing ones:
 | Confidence-Modulated Debate | Round Table confidence-weighted update rules |
 
 Full bibliography in `README.md` and `/advisor/why`.
+
+---
+
+## 14. Model roster refresh — 2026-07-30
+
+The per-role model pins had drifted one to three generations behind what OpenRouter serves. This refresh optimised for **balanced value** (upgrade where free or cheaper) and added **xAI Grok as a fifth provider**, strengthening the X-MAS architectural-diversity argument.
+
+### Previous roster (for reference)
+
+| Strategy | Was |
+|---|---|
+| Consensus Board | Risk `claude-opus-4-7` · Growth `gpt-5.4` · Ops `gemini-2.5-flash` · TechFeas `deepseek-r1` → Judge `claude-opus-4-8` |
+| Deep Dive | Manager `gpt-5.4` · Worker `gemini-2.5-flash` → Judge `gpt-5.4` |
+| Stress Tester | Proposer `claude-opus-4-7` · Devil `gpt-5.4` · Refiner `claude-opus-4-7` → Judge `gemini-2.5-flash` |
+| Round Table | Market `gpt-5.4` · Financial `claude-opus-4-7` · Industry `gemini-2.5-flash` · Human `deepseek-r1` → Judge `claude-opus-4-7` |
+| All Angles | Meta-Judge `claude-opus-4-8` |
+
+### Why each change
+
+| Change | Rationale |
+|---|---|
+| `claude-opus-4-7` / `-4-8` → `claude-opus-5` | Current-generation Opus at **identical** $5/$25 per M. A free capability upgrade. |
+| `gemini-2.5-flash` → `gemini-3.5-flash-lite` | Three generations newer at **identical** $0.30/$2.50 per M. |
+| `gpt-5.4` → `gpt-5.6-terra` | Newer and **half the price** ($1.25/$7.50 vs $2.50/$15). Funds the fifth agent. |
+| Stress Tester judge `gemini-2.5-flash` → `gpt-5.6-terra` | The worst mismatch in the old roster: the user-facing final synthesis was done by the cheapest model in the config while every other strategy judged with a frontier model. |
+| **New** Consensus Board "Second-Order Effects Analyst" (`grok-4.3`) | Fifth independent architecture; covers the knock-on consequence layer the other four specialisms are too close to see. |
+| **New** Round Table "Contrarian" (`grok-4.3`) | Fifth voice explicitly tasked with resisting premature convergence. Role-anchored per RADAR, since this is the role most vulnerable to social pressure. |
+| Stress Tester Devil's Advocate `gpt-5.4` → `grok-4.3` | Adversarial role, and Grok's output pricing ($2.50/M) is unusually cheap for the volume this role generates. |
+| `gemini-3.1-flash-lite-preview` → `gemini-3.1-flash-lite` | Same price, non-preview channel. |
+| `max_tokens` default 4096 → 8192 (`llm.ts`) | **Required by the Opus 5 move.** Opus 5 runs adaptive thinking by default and `max_tokens` caps thinking + response *together*. `parseJSON`'s three-pass truncation recovery already existed because models were hitting the old ceiling; Opus 5 would have made that worse. Judges were unaffected (they set 16384 explicitly). |
+
+### Measured result — Consensus Board, 2026-07-30
+
+A live run (job `7b65a1d9`, 12-person B2B SaaS pricing challenge) on the new roster. **All five agents plus the judge succeeded; the report was 14,433 chars and correctly synthesised "five advisory analyses".**
+
+| Role | Model | in/out tokens | Cost | Secs |
+|---|---|---:|---:|---:|
+| Operations Manager | `gemini-3.5-flash-lite` | 321 / 1,689 | $0.0043 | 8 |
+| Second-Order Effects Analyst | `grok-4.3` | 2,437 / 1,251 | $0.0059 | 17 |
+| Growth Strategist | `gpt-5.6-terra` | 4,751 / 3,606 | $0.0341 | 47 |
+| Technical Feasibility | `deepseek-r1` | 624 / 1,948 | $0.0053 | 106 |
+| Risk Analyst | `claude-opus-5` | 21,633 / 8,610 | **$0.3400** | 137 |
+| Judge | `claude-opus-5` | 57,580 / 8,165 | **$0.5069** | 366 |
+| **Total** | | **112,615** | **$0.8964** | **503** |
+
+**The "roughly cost-neutral" projection in the refresh plan was wrong.** Against the one available pre-change baseline ($0.3904 / 60,326 tokens / 170s), the new roster cost **2.3×**, used **1.9×** the tokens, and took **3×** the wall-clock. Note n=1 on both sides, so treat the ratio as directional.
+
+Cause: **the two Opus 5 calls are 95% of the bill** ($0.85 of $0.90). Two compounding effects the original estimate missed —
+1. **Adaptive thinking is on by default**, so output tokens are far higher than a non-thinking model (8,610 and 8,165 vs ~1,200–1,900 for the others).
+2. **Opus 5 searches the web far more aggressively.** Input tokens ranged from 321 (Gemini) to 21,633 (Opus 5) on the *same* prompt — that spread is retrieved search results entering context. The judge then reads five agent outputs, hence 57,580 input tokens.
+
+The fifth agent itself is cheap (Grok, $0.0059 — the second-cheapest call). It is Opus 5, not Grok, that moved the numbers.
+
+**Levers if cost matters more than depth:** drop the Risk Analyst to `claude-sonnet-5` ($2/$10 vs $5/$25); pass `reasoning: { effort: "low" }` on agent calls; or set `webSearch: false` on roles that don't need live data (the flag exists in `callModel` but no caller currently passes it).
+
+### ⚠️ Latency estimates were already wrong before this change
+
+The old frontmatter claimed Consensus Board runs in **~15–30 s**. The pre-change baseline actually took **170 s**, and the new roster takes **503 s** — so the shipped estimate was off by ~6× *before* the refresh and ~20× after. `estimatedLatency` has now been corrected across all five strategies.
+
+Only **Consensus Board is measured**. The other four are scaled extrapolations from its per-model data and remain unverified — Stress Tester (4 Opus 5 calls) and Round Table (Opus 5 × 3 rounds + judge) are the likeliest to be under-estimated.
+
+### ⚠️ Verify after the next live run
+
+- **`deepseek-r1` is now the only non-multimodal model in the roster** — confirmed via OpenRouter `architecture.input_modalities`. The `FILE_MODEL_SWAPS` hack in `llm.ts` remains necessary and correctly targeted at exactly one model.
+- **Round Table convergence maths shifted.** `consensusThreshold: 0.8` was tuned against 4 agents; with 5 (one of them a deliberate contrarian) rounds may now always run to `maxRounds: 3` instead of early-exiting. Watch this before assuming the cost estimate holds.
+- **`estimatedCost` frontmatter is unverified** against the new roster. The arithmetic suggests roughly cost-neutral for Consensus Board despite the extra agent, but this has not been measured against real `totalCostUsd`.
+- **`demo-fixtures.json` still contains the old model names** in its stored agent responses, so demo transcripts will show a stale roster until regenerated via `scripts/export-demo.mjs`.
+
+### Note on OpenRouter model IDs
+
+OpenRouter's canonical Anthropic IDs use **dot** notation (`anthropic/claude-opus-4.7`), but it **aliases the hyphen form** (`anthropic/claude-opus-4-7`) to the same model. The old config was therefore working, not broken — a hyphenated ID missing from the `/models` listing is not evidence of an outage. Verify with `GET /api/v1/models/{id}/endpoints` and compare the returned canonical `id`.
