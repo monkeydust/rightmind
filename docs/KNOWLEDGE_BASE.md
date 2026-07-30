@@ -571,3 +571,32 @@ Round Table rounds 2+, the Deep Dive manager decomposition, and the All Angles M
 ### Not yet measured
 
 Only Consensus Board has a like-for-like A/B. Stress Tester and Round Table on Dragon ran only as All Angles children ($0.09 and $0.11 respectively within that run). **Report quality has not been formally compared** — Dragon's report was ~20% shorter; whether it is materially worse is an open question.
+
+---
+
+## 16. Cost accounting audit (2026-07-30)
+
+Full verification of the cost pipeline, prompted by "is the cost calculator working correctly". Answer: **the happy path was exact; the failure path silently discarded real spend.**
+
+### What was verified correct
+
+- **Per-call `costUsd` is OpenRouter's billed `usage.cost`** — authoritative, not computed locally. Cross-checked against tokens × list price: most calls within ±5%.
+- **Job totals reconcile exactly** — `AdvisorJob.totalCostUsd` = Σ `AgentResponse.costUsd` for every DONE single-strategy job, to the cent.
+- **All Angles parent = children + meta-judge**, no double counting ($0.5321 = 0.0435+0.1666+0.1363+0.1104 + 0.0753, tokens likewise).
+- **Follow-ups** `increment` the job total correctly.
+- **Two explainable outliers** (kimi-k2.5 at 1.86× list, glm-5.2 at 1.29×): per-endpoint pricing varies widely (glm-5.2 spans $0.60–$2.31/M input) and `provider.data_collection: "deny"` routes to the pricier privacy-respecting endpoints; web-search fees add the rest. Stored cost = billed cost; the "outlier" is routing, not arithmetic.
+
+### The bug: FAILED/CANCELLED jobs showed $0 while money was spent
+
+`totalCostUsd` was only written in the success path. The in-memory accumulator died with the job, so every failed or cancelled run displayed **Cost: $0.0000** despite real spend — **26 production jobs totalling $17.34 unrecorded** (worst single job $1.57). A handful of FAILED rows showed correct costs: those failed *after* the DONE write, inside `onJobComplete`.
+
+### Fix
+
+`recordedSpend(jobId)` in `src/lib/job-complete.ts` recovers the truth from the persisted `AgentResponse` rows (written per call as each returns) plus child-job totals, and every orchestrator's CANCELLED and FAILED update now spreads it in. Verified live: a Dragon job cancelled mid-run recorded $0.0150/15,873 tok, exactly matching its 5 agent calls.
+
+Historical rows were backfilled (own sums, then + children for All Angles parents) in both dev and production DBs.
+
+### Still true
+
+- Totals only land at terminal status — a RUNNING job shows $0 until it finishes or dies. Cosmetic; the SSE UI shows progress, not spend.
+- `JobFollowUp` costs increment the job total but are not included in `recordedSpend` (follow-ups only exist on DONE jobs, so the failure path never sees them).

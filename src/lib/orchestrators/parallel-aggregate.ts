@@ -8,7 +8,7 @@
 import { prisma } from "@/lib/db";
 import { callModel } from "@/lib/llm";
 import { isJobCancelled, clearCancellation } from "@/lib/cancellation";
-import { onJobComplete, onJobFailed } from "@/lib/job-complete";
+import { onJobComplete, onJobFailed, recordedSpend } from "@/lib/job-complete";
 import { buildUserContent } from "@/lib/file-content";
 import { getModelForRole, resolveModelForRole, resolveTierModel } from "@/lib/model-tier";
 import type { StrategyConfig, AgentStepProgress, FileAttachment, ModelTier } from "@/lib/types";
@@ -218,6 +218,7 @@ export async function orchestrateParallelAggregate({
   } catch (error) {
     const cancelled = isJobCancelled(jobId);
     clearCancellation(jobId);
+    const spend = await recordedSpend(jobId);
 
     if (cancelled) {
       console.log(`[Job ${jobId}] 🛑 Consensus Board cancelled by user.`);
@@ -225,6 +226,7 @@ export async function orchestrateParallelAggregate({
         where: { id: jobId },
         data: {
           status: "CANCELLED",
+          ...spend,
           progress: JSON.stringify({
             currentPhase: "cancelled",
             steps: allSteps.map((s) =>
@@ -239,6 +241,7 @@ export async function orchestrateParallelAggregate({
         where: { id: jobId },
         data: {
           status: "FAILED",
+          ...spend,
           error: error instanceof Error ? error.message : String(error),
           progress: JSON.stringify({
             currentPhase: "failed",

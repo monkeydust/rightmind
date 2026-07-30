@@ -9,7 +9,7 @@
 import { prisma } from "@/lib/db";
 import { callModel, parseJSON } from "@/lib/llm";
 import { isJobCancelled, clearCancellation } from "@/lib/cancellation";
-import { onJobComplete, onJobFailed } from "@/lib/job-complete";
+import { onJobComplete, onJobFailed, recordedSpend } from "@/lib/job-complete";
 import { buildUserContent } from "@/lib/file-content";
 import { resolveTierModel } from "@/lib/model-tier";
 import { getStrategyById } from "@/lib/strategies";
@@ -299,6 +299,7 @@ export async function orchestrateAllAngles({
     const cancelled = isJobCancelled(jobId);
     clearCancellation(jobId);
     const status = cancelled ? "CANCELLED" : "FAILED";
+    const spend = await recordedSpend(jobId);
     const phase = cancelled ? "cancelled" : "failed";
     if (cancelled) console.log(`[Job ${jobId}] 🛑 All Angles cancelled.`);
     else console.error(`[Job ${jobId}] ❌ All Angles failed:`, error);
@@ -306,6 +307,7 @@ export async function orchestrateAllAngles({
       where: { id: jobId },
       data: {
         status,
+        ...spend,
         error: cancelled ? undefined : (error instanceof Error ? error.message : String(error)),
         progress: JSON.stringify({
           currentPhase: phase,

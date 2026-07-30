@@ -12,7 +12,7 @@
 import { prisma } from "@/lib/db";
 import { callModel, parseJSON } from "@/lib/llm";
 import { isJobCancelled, clearCancellation } from "@/lib/cancellation";
-import { onJobComplete, onJobFailed } from "@/lib/job-complete";
+import { onJobComplete, onJobFailed, recordedSpend } from "@/lib/job-complete";
 import { buildUserContent } from "@/lib/file-content";
 import { getModelForRole, resolveModelForRole, resolveTierModel } from "@/lib/model-tier";
 import type { StrategyConfig, AgentStepProgress, RoundTableResponse, FileAttachment, ModelTier } from "@/lib/types";
@@ -315,6 +315,7 @@ export async function orchestrateMultiRoundConsensus({
     const cancelled = isJobCancelled(jobId);
     clearCancellation(jobId);
     const status = cancelled ? "CANCELLED" : "FAILED";
+    const spend = await recordedSpend(jobId);
     const phase = cancelled ? "cancelled" : "failed";
     if (cancelled) console.log(`[Job ${jobId}] 🛑 Round Table cancelled.`);
     else console.error(`[Job ${jobId}] ❌ Round Table failed:`, error);
@@ -322,6 +323,7 @@ export async function orchestrateMultiRoundConsensus({
       where: { id: jobId },
       data: {
         status,
+        ...spend,
         error: cancelled ? undefined : (error instanceof Error ? error.message : String(error)),
         progress: JSON.stringify({
           currentPhase: phase,

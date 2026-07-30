@@ -17,6 +17,32 @@ const STRATEGY_META: Record<string, { name: string; icon: string }> = {
   "all-angles": { name: "All Angles", icon: "🔮" },
 };
 
+/**
+ * True spend for a job, recovered from its persisted AgentResponse rows
+ * (plus child-job totals, for All Angles parents).
+ *
+ * Used on the FAILED/CANCELLED paths: the orchestrators' in-memory cost
+ * accumulators are only flushed on success, but partial spend is real
+ * spend — the per-call rows are written as each call returns, so they are
+ * the source of truth when a job dies partway through.
+ */
+export async function recordedSpend(
+  jobId: string
+): Promise<{ totalCostUsd: number; totalTokens: number }> {
+  const own = await prisma.agentResponse.aggregate({
+    where: { jobId },
+    _sum: { costUsd: true, tokens: true },
+  });
+  const children = await prisma.advisorJob.aggregate({
+    where: { parentJobId: jobId },
+    _sum: { totalCostUsd: true, totalTokens: true },
+  });
+  return {
+    totalCostUsd: (own._sum.costUsd ?? 0) + (children._sum.totalCostUsd ?? 0),
+    totalTokens: (own._sum.tokens ?? 0) + (children._sum.totalTokens ?? 0),
+  };
+}
+
 export async function onJobComplete(jobId: string): Promise<void> {
   try {
     const job = await prisma.advisorJob.findUnique({
