@@ -188,8 +188,8 @@ export default function StrategyDetailPage() {
       {s.arxivPapers.length > 0 && (
         <div style={{ marginTop: "24px" }}>
           <div className="section-label">Research and evidence base</div>
-          {s.arxivPapers.map((p) => (
-            <div key={p.url} style={{ marginBottom: "10px" }}>
+          {s.arxivPapers.map((p, i) => (
+            <div key={`${i}-${p.title}`} style={{ marginBottom: "10px" }}>
               <a
                 href={p.url}
                 target="_blank"

@@ -363,8 +363,8 @@ export default function WhyPage() {
             { title: "Sparse Communication Topology", url: "https://arxiv.org/abs/2406.11776", insight: "Linear chains beat dense all-to-all for structured debate" },
             { title: "The Consistency Illusion", url: "https://arxiv.org/", insight: "Multi-agent consensus can hide reasoning misalignment; grounded debate protocols fix this" },
             { title: "Confidence-Modulated Debate", url: "https://arxiv.org/", insight: "Calibrated confidence levels improve debate quality vs uniform belief updates" },
-          ].map((p) => (
-            <div key={p.url} style={{ display: "flex", gap: "10px", alignItems: "baseline" }}>
+          ].map((p, i) => (
+            <div key={`${i}-${p.title}`} style={{ display: "flex", gap: "10px", alignItems: "baseline" }}>
               <span style={{ fontSize: "11px", color: "var(--grey-light)", flexShrink: 0 }}>📄</span>
               <div>
                 <Cite href={p.url}>{p.title}</Cite>
