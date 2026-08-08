@@ -118,7 +118,7 @@ def main():
     report = build_report(fetch_forecast())
     print(report)
     if dry_run:
-        print("\n[dry run - email not sent]")
+        print("[dry run - email not sent]", file=sys.stderr)
         return
     recipient = os.environ.get("WEATHER_TO", DEFAULT_RECIPIENT)
     send_email(report, recipient)
