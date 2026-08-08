@@ -1,0 +1,22 @@
+name: Daily Crete weather report
+
+on:
+  schedule:
+    # 06:00 UTC = 7am UK time during BST (summer). In winter (GMT) this
+    # arrives at 6am; change to "0 7 * * *" from late October if preferred.
+    - cron: "0 6 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  send-report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Send weather report
+        env:
+          SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+        run: python scripts/weather_report.py
