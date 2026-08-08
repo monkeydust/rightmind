@@ -49,6 +49,3 @@ prisma/backups/
 
 tmp/
 
-
-# Python
-__pycache__/
